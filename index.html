@@ -642,6 +642,8 @@ function saveMyShift() {
 }
 
 // IMPORT via AI
+const GEMINI_KEY = 'AQ.Ab8RN6ILQvu2W5dLqcffQT9w8cpsswfN_HRAGk8nRs9N4vTwEA';
+
 async function handleImport(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -649,6 +651,8 @@ async function handleImport(event) {
   const status = document.getElementById('aiStatus');
   const statusText = document.getElementById('aiStatusText');
   status.className = 'ai-status show';
+  status.querySelector('.spinner').style.display = 'block';
+  statusText.style.color = 'var(--text2)';
   statusText.textContent = 'Leyendo imagen...';
   document.getElementById('importPreview').innerHTML = '';
 
@@ -656,24 +660,16 @@ async function handleImport(event) {
     const base64 = await fileToBase64(file);
     statusText.textContent = 'Analizando turnos con IA...';
 
-    const isImage = file.type.startsWith('image/');
-    const mediaType = isImage ? file.type : 'image/jpeg';
+    const mediaType = file.type.startsWith('image/') ? file.type : 'image/jpeg';
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: [
+        contents: [{
+          parts: [
+            { inline_data: { mime_type: mediaType, data: base64 } },
             {
-              type: 'image',
-              source: { type: 'base64', media_type: mediaType, data: base64 }
-            },
-            {
-              type: 'text',
               text: `Analizá esta imagen de un sistema de planificación de turnos (posiblemente Orquest Decide u otro sistema de McDonald's).
 Extraé TODOS los turnos que veas. Respondé SOLO con un JSON array, sin texto extra, sin backticks.
 Formato exacto:
@@ -686,8 +682,9 @@ Si no podés determinar la posición, usá "Caja". Horarios en formato 24hs.`
       })
     });
 
+    if (!response.ok) { const err = await response.json(); throw new Error(err.error?.message || 'Error de API'); }
     const data = await response.json();
-    const text = data.content?.find(b => b.type === 'text')?.text || '';
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const clean = text.replace(/```json|```/g, '').trim();
     const parsed = JSON.parse(clean);
 
