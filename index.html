@@ -312,7 +312,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
         <input type="time" class="form-input" id="myEnd" value="18:00">
       </div>
     </div>
-    <p style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">Con el filtro activo, se muestran crew que entran <b style="color:var(--text)">hasta 1 hora antes de que te vayas</b> y salen después de que entrás.</p>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">Con el filtro activo, se muestran crew que entran <b style="color:var(--text)">desde tu horario de entrada hasta 1 hora antes de que te vayas</b>. Ejemplo: si hacés 09:00 a 17:00, ves entradas de 09:00 a 16:00.</p>
     <button class="btn-primary" onclick="saveMyShift()">Guardar</button>
   </div>
 </div>
@@ -404,21 +404,31 @@ function getSampleCrew() {
 }
 
 function inMyShift(crew) {
-  const ms = timeToMin(state.myShift.start);
-  const me = timeToMin(state.myShift.end);
-  const cs = timeToMin(crew.entrada);
-  const ce = timeToMin(crew.salida);
-  // Crew visible si entra antes de que yo me vaya Y sale después de que yo entro
-  return cs < me && ce > ms;
+  const myStart = timeToMin(state.myShift.start);
+  const myEnd = timeToMin(state.myShift.end);
+  const crewStart = timeToMin(crew.entrada);
+
+  // Filtro "Solo mi turno":
+  // Si mi turno es 09:00 a 17:00, muestra SOLO los que ENTRAN
+  // desde 09:00 hasta 16:00 inclusive.
+  // No importa si alguien de 06:00 a 11:00 se cruza con mi turno:
+  // no aparece porque entró antes de mi horario.
+  const lastVisibleEntry = myEnd - 60;
+
+  return crewStart >= myStart && crewStart <= lastVisibleEntry;
 }
 
 function crewStatus(crew) {
-  const ms = timeToMin(state.myShift.start);
-  const me = timeToMin(state.myShift.end);
-  const cs = timeToMin(crew.entrada);
-  const ce = timeToMin(crew.salida);
-  if (cs >= ms - 60 && cs <= ms + 60) return 'entering';
-  if (ce >= me - 60 && ce <= me + 60) return 'ending';
+  const myStart = timeToMin(state.myShift.start);
+  const myEnd = timeToMin(state.myShift.end);
+  const crewStart = timeToMin(crew.entrada);
+
+  // Colores del borde cuando está activo "Solo mi turno".
+  // Amarillo: entra justo conmigo.
+  // Rojo: entra cerca del último rango visible.
+  // Verde: entra dentro del rango de mi turno.
+  if (crewStart === myStart) return 'entering';
+  if (crewStart >= myEnd - 120 && crewStart <= myEnd - 60) return 'ending';
   return 'overlap';
 }
 
