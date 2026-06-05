@@ -642,7 +642,12 @@ function saveMyShift() {
 }
 
 // IMPORT via AI
-const GEMINI_KEY = 'AQ.Ab8RN6ILQvu2W5dLqcffQT9w8cpsswfN_HRAGk8nRs9N4vTwEA';
+// IMPORTANTE:
+// 1) En GitHub Pages esta API Key queda visible para cualquiera.
+// 2) Para probar rápido funciona, pero lo correcto es usar un backend/proxy.
+// 3) Después de probar, si la key estuvo publicada, revocala y creá una nueva.
+const GEMINI_KEY = 'PEGÁ_ACÁ_TU_API_KEY_DE_GEMINI';
+const GEMINI_MODEL = 'gemini-2.5-flash';
 
 async function handleImport(event) {
   const file = event.target.files[0];
@@ -650,69 +655,191 @@ async function handleImport(event) {
 
   const status = document.getElementById('aiStatus');
   const statusText = document.getElementById('aiStatusText');
+  const spinner = status.querySelector('.spinner');
+
   status.className = 'ai-status show';
-  status.querySelector('.spinner').style.display = 'block';
+  spinner.style.display = 'block';
   statusText.style.color = 'var(--text2)';
-  statusText.textContent = 'Leyendo imagen...';
+  statusText.textContent = 'Leyendo archivo...';
   document.getElementById('importPreview').innerHTML = '';
 
   try {
+    if (!GEMINI_KEY || GEMINI_KEY === 'PEGÁ_ACÁ_TU_API_KEY_DE_GEMINI') {
+      throw new Error('Falta configurar tu API Key de Gemini en el código.');
+    }
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error('Formato no soportado. Usá JPG, PNG, WEBP o PDF.');
+    }
+
     const base64 = await fileToBase64(file);
-    statusText.textContent = 'Analizando turnos con IA...';
+    statusText.textContent = 'Analizando turnos con Gemini...';
 
-    const mediaType = file.type.startsWith('image/') ? file.type : 'image/jpeg';
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(GEMINI_KEY)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            role: 'user',
+            parts: [
+              {
+                inline_data: {
+                  mime_type: file.type,
+                  data: base64
+                }
+              },
+              {
+                text: `Analizá esta imagen o PDF de un sistema de planificación de turnos, posiblemente Orquest Decide o sistema de McDonald's.
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { inline_data: { mime_type: mediaType, data: base64 } },
-            {
-              text: `Analizá esta imagen de un sistema de planificación de turnos (posiblemente Orquest Decide u otro sistema de McDonald's).
-Extraé TODOS los turnos que veas. Respondé SOLO con un JSON array, sin texto extra, sin backticks.
+Necesito que extraigas TODOS los turnos visibles.
+
+Respondé ÚNICAMENTE con un JSON array válido.
+No agregues explicación.
+No uses markdown.
+No uses backticks.
+
 Formato exacto:
-[{"name":"Nombre Apellido","entrada":"HH:MM","salida":"HH:MM","pos":"Posición"}]
-Posiciones válidas: Caja, Drive, Cocina, Freidora, McCafé, Lobby, Sala, Manager, Abaste, Baños.
-Si no podés determinar la posición, usá "Caja". Horarios en formato 24hs.`
-            }
-          ]
-        }]
-      })
-    });
+[
+  {
+    "name": "Nombre Apellido",
+    "entrada": "HH:MM",
+    "salida": "HH:MM",
+    "pos": "Posición"
+  }
+]
 
-    if (!response.ok) { const err = await response.json(); throw new Error(err.error?.message || 'Error de API'); }
+Reglas:
+- Horarios en formato 24 horas.
+- Si un horario aparece como 7, convertirlo a "07:00".
+- Si aparece 7:30, convertirlo a "07:30".
+- Si no podés determinar la posición, usá "Caja".
+- Posiciones válidas: Caja, Drive, Cocina, Freidora, McCafé, Lobby, Sala, Manager, Abaste, Baños.
+- Si hay nombres repetidos con turnos distintos, incluí ambos.
+- Si un dato no se ve bien, intentá inferirlo solo si es muy claro.`
+              }
+            ]
+          }],
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: 'application/json'
+          }
+        })
+      }
+    );
+
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const clean = text.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
 
-    if (!Array.isArray(parsed) || parsed.length === 0) throw new Error('No se encontraron turnos');
+    if (!response.ok) {
+      const apiMessage = data?.error?.message || 'Error de API';
+      throw new Error(apiMessage);
+    }
 
-    statusText.textContent = `✓ ${parsed.length} turnos encontrados`;
-    status.querySelector('.spinner').style.display = 'none';
+    const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('\n') || '';
+    const parsed = parseGeminiJsonArray(text);
 
-    // Preview + confirm
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      throw new Error('No se encontraron turnos en el archivo.');
+    }
+
+    const normalized = parsed
+      .map(normalizeCrew)
+      .filter(c => c.name && c.entrada && c.salida);
+
+    if (normalized.length === 0) {
+      throw new Error('Gemini respondió, pero no pude validar nombres y horarios.');
+    }
+
+    statusText.textContent = `✓ ${normalized.length} turnos encontrados`;
+    spinner.style.display = 'none';
+
     let preview = `<div style="margin-top:14px;background:var(--surface);border-radius:var(--radius);padding:14px;border:0.5px solid var(--border)">
-      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px">ENCONTRADOS — ${parsed.length} turnos</div>`;
-    parsed.forEach(c => {
-      preview += `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:14px">
-        <span style="font-weight:600">${c.name}</span>
-        <span style="color:var(--text2);font-family:'Barlow Condensed',sans-serif;font-size:16px">${c.entrada} → ${c.salida}</span>
-        <span style="color:var(--text3);font-size:12px">${c.pos}</span>
+      <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px">ENCONTRADOS — ${normalized.length} turnos</div>`;
+
+    normalized.forEach(c => {
+      preview += `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:14px">
+        <span style="font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(c.name)}</span>
+        <span style="color:var(--text2);font-family:'Barlow Condensed',sans-serif;font-size:16px;white-space:nowrap">${escapeHtml(c.entrada)} → ${escapeHtml(c.salida)}</span>
+        <span style="color:var(--text3);font-size:12px;white-space:nowrap">${escapeHtml(c.pos)}</span>
       </div>`;
     });
-    preview += `<button class="btn-primary" style="margin-top:12px" onclick="applyImport(${JSON.stringify(parsed).replace(/"/g,'&quot;')})">Agregar al día actual</button></div>`;
+
+    preview += `<button class="btn-primary" style="margin-top:12px" onclick="applyImportFromPreview()">Agregar al día actual</button></div>`;
+
+    window.__lastImportCrew = normalized;
     document.getElementById('importPreview').innerHTML = preview;
 
   } catch(e) {
-    status.querySelector('.spinner').style.display = 'none';
-    statusText.textContent = '✗ Error: ' + (e.message || 'No se pudo leer la imagen');
+    spinner.style.display = 'none';
+    statusText.textContent = '✗ Error: ' + (e.message || 'No se pudo leer el archivo');
     statusText.style.color = '#E24B4A';
   }
 
   event.target.value = '';
+}
+
+function parseGeminiJsonArray(text) {
+  let clean = String(text || '').trim();
+
+  clean = clean
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/```$/i, '')
+    .trim();
+
+  try {
+    return JSON.parse(clean);
+  } catch (_) {
+    const first = clean.indexOf('[');
+    const last = clean.lastIndexOf(']');
+    if (first >= 0 && last > first) {
+      return JSON.parse(clean.slice(first, last + 1));
+    }
+    throw new Error('La IA no devolvió un JSON válido.');
+  }
+}
+
+function normalizeCrew(c) {
+  const pos = POSITIONS.includes(c.pos) ? c.pos : 'Caja';
+
+  return {
+    name: String(c.name || c.nombre || '').trim(),
+    entrada: normalizeTime(c.entrada || c.inicio || c.start),
+    salida: normalizeTime(c.salida || c.fin || c.end),
+    pos
+  };
+}
+
+function normalizeTime(value) {
+  if (value === null || value === undefined) return '';
+
+  const raw = String(value).trim().replace('.', ':');
+
+  const match = raw.match(/(\d{1,2})(?::(\d{1,2}))?/);
+  if (!match) return '';
+
+  let h = Number(match[1]);
+  let m = match[2] !== undefined ? Number(match[2]) : 0;
+
+  if (Number.isNaN(h) || Number.isNaN(m)) return '';
+  if (h < 0 || h > 23 || m < 0 || m > 59) return '';
+
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+}
+
+function applyImportFromPreview() {
+  applyImport(window.__lastImportCrew || []);
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
 }
 
 function applyImport(crewArr) {
