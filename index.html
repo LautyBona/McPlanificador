@@ -89,6 +89,10 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 
 /* CREW CARDS */
 .crew-list { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+.segment-block { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.segment-title-row { display: flex; align-items: center; justify-content: space-between; margin: 10px 0 2px; padding: 0 2px; }
+.segment-title { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 800; letter-spacing: 0.05em; color: var(--yellow); text-transform: uppercase; }
+.segment-count { font-size: 11px; color: var(--text3); background: var(--surface2); border: 0.5px solid var(--border); padding: 2px 8px; border-radius: 20px; }
 .crew-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 12px 14px; display: flex; align-items: center; gap: 12px; position: relative; }
 .crew-card.entering { border-left: 3px solid var(--yellow); }
 .crew-card.overlap { border-left: 3px solid #4CAF50; }
@@ -208,12 +212,12 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     <div class="stats-grid">
       <div class="stat-card"><div class="stat-val" id="statTotal">0</div><div class="stat-label">Crew activos</div></div>
       <div class="stat-card"><div class="stat-val" id="statHoras">0h</div><div class="stat-label">Horas totales</div></div>
-      <div class="stat-card"><div class="stat-val" id="statPos">0</div><div class="stat-label">Posiciones</div></div>
+      <div class="stat-card"><div class="stat-val" id="statPos">0</div><div class="stat-label">Segmentos</div></div>
     </div>
 
     <!-- Crew list -->
     <div class="section-header">
-      <span class="section-title">Crew del día</span>
+      <span class="section-title">Crew del día por segmento</span>
       <span class="crew-count" id="crewCountLabel">0 personas</span>
     </div>
     <div class="crew-list" id="crewList"></div>
@@ -331,13 +335,137 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 
 <script>
-const POSITIONS = ['Caja','Drive','Cocina','Freidora','McCafé','Lobby','Sala','Manager','Abaste','Baños'];
+const SEGMENTS = ['DELIVERY','AUTOMC','COCINA','SERVICIO','LOBBY','MARKETING','MANTENIMIENTO','DESCARGA'];
+
+const POSITION_MAP = {
+  // DELIVERY
+  'CDL': { label: 'Coordinador DLV', segment: 'DELIVERY' },
+  'PDL': { label: 'Presentador DLV', segment: 'DELIVERY' },
+  'VDL': { label: 'Verificador DLV', segment: 'DELIVERY' },
+
+  // AUTOMC
+  'TAU': { label: 'Tomador AutoMac', segment: 'AUTOMC' },
+  'CAU': { label: 'Cajero AutoMac', segment: 'AUTOMC' },
+  'PAU': { label: 'Presentador AutoMac', segment: 'AUTOMC' },
+  'EAU': { label: 'Expedidor AutoMac', segment: 'AUTOMC' },
+  'COR': { label: 'Corredor AutoMac', segment: 'AUTOMC' },
+  'VAM': { label: 'Verificador AutoMac', segment: 'AUTOMC' },
+
+  // COCINA
+  'INC': { label: 'Iniciador Cocina', segment: 'COCINA' },
+  'ENS': { label: 'Ensamblador', segment: 'COCINA' },
+  'PRR': { label: 'Parrilla', segment: 'COCINA' },
+  'PPS': { label: 'Papas', segment: 'COCINA' },
+  'COCI': { label: 'Cocina', segment: 'COCINA' },
+
+  // SERVICIO
+  'VEN': { label: 'Caja / Vendedor', segment: 'SERVICIO' },
+  'MOS': { label: 'Mostrador', segment: 'SERVICIO' },
+  'PAP': { label: 'Presentador AutoMac', segment: 'SERVICIO' },
+  'EALM': { label: 'Entrega a la Mesa', segment: 'SERVICIO' },
+
+  // LOBBY
+  'LOB': { label: 'Lobby', segment: 'LOBBY' },
+
+  // MARKETING
+  'CUM': { label: 'Cumpleaños', segment: 'MARKETING' },
+  'LEC': { label: 'LEC', segment: 'MARKETING' },
+
+  // MANTENIMIENTO
+  'MTM': { label: 'Mantenimiento', segment: 'MANTENIMIENTO' },
+
+  // DESCARGA
+  'BOD': { label: 'Bodeguero', segment: 'DESCARGA' },
+  'DES': { label: 'Descarga', segment: 'DESCARGA' }
+};
+
+const POSITIONS = Object.keys(POSITION_MAP);
 const AV_COLORS = ['c0','c1','c2','c3','c4','c5','c6','c7'];
 const POS_COLORS_MAP = {
-  'Caja':'#DA291C','Drive':'#FFC72C','Cocina':'#1a73e8','Freidora':'#ff5722',
-  'McCafé':'#795548','Lobby':'#34a853','Sala':'#9c27b0','Manager':'#00bcd4',
-  'Abaste':'#607d8b','Baños':'#9e9e9e'
+  'DELIVERY':'#ff5722',
+  'AUTOMC':'#FFC72C',
+  'COCINA':'#1a73e8',
+  'SERVICIO':'#DA291C',
+  'LOBBY':'#34a853',
+  'MARKETING':'#9c27b0',
+  'DESCARGA':'#607d8b'
 };
+
+function cleanPositionCode(value) {
+  return String(value || '')
+    .trim()
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+function normalizePosition(value) {
+  const raw = String(value || '').trim();
+  const upper = raw.toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  const code = cleanPositionCode(raw);
+
+  if (POSITION_MAP[code]) return { code, ...POSITION_MAP[code] };
+
+  // Lecturas frecuentes de la IA o textos largos del Orquest.
+  if (upper.includes('BOD') || upper.includes('BODEGA') || upper.includes('BODEGUERO')) return { code: 'BOD', ...POSITION_MAP.BOD };
+  if (upper.includes('DESCARGA') || upper === 'DES') return { code: 'DES', ...POSITION_MAP.DES };
+  if (upper.includes('LOBBY') || upper === 'LOB') return { code: 'LOB', ...POSITION_MAP.LOB };
+  if (upper.includes('CUMPLE') || upper.includes('MARKETING') || upper === 'CUM') return { code: 'CUM', ...POSITION_MAP.CUM };
+  if (upper.includes('LEC')) return { code: 'LEC', ...POSITION_MAP.LEC };
+  if (upper.includes('MANTENIMIENTO') || upper === 'MTM') return { code: 'MTM', ...POSITION_MAP.MTM };
+
+  if (upper.includes('COORDINADOR DLV') || upper === 'CDL') return { code: 'CDL', ...POSITION_MAP.CDL };
+  if (upper.includes('PRESENTADOR DLV') || upper.includes('PRESENTANDO DELIVERY') || upper === 'PDL') return { code: 'PDL', ...POSITION_MAP.PDL };
+  if (upper.includes('VERIFICADOR DLV') || upper === 'VDL') return { code: 'VDL', ...POSITION_MAP.VDL };
+
+  if (upper.includes('TOMADOR') && upper.includes('AUTO')) return { code: 'TAU', ...POSITION_MAP.TAU };
+  if (upper.includes('CAJERO') && upper.includes('AUTO')) return { code: 'CAU', ...POSITION_MAP.CAU };
+  if (upper.includes('PRESENTADOR') && upper.includes('AUTO')) return { code: 'PAU', ...POSITION_MAP.PAU };
+  if (upper.includes('EXPEDIDOR') && upper.includes('AUTO')) return { code: 'EAU', ...POSITION_MAP.EAU };
+  if (upper.includes('CORREDOR') && upper.includes('AUTO')) return { code: 'COR', ...POSITION_MAP.COR };
+  if (upper.includes('VERIFICADOR')) return { code: 'VAM', ...POSITION_MAP.VAM };
+
+  if (upper.includes('INICIADOR') || upper === 'INC') return { code: 'INC', ...POSITION_MAP.INC };
+  if (upper.includes('ENSAMBLADOR') || upper === 'ENS') return { code: 'ENS', ...POSITION_MAP.ENS };
+  if (upper.includes('PARRILLA') || upper === 'PRR') return { code: 'PRR', ...POSITION_MAP.PRR };
+  if (upper.includes('PAPAS') || upper === 'PPS') return { code: 'PPS', ...POSITION_MAP.PPS };
+  if (upper.includes('COCINA') || upper.includes('COCI')) return { code: 'COCI', ...POSITION_MAP.COCI };
+
+  if (upper.includes('VENDEDOR') || upper.includes('CAJA') || upper === 'VEN') return { code: 'VEN', ...POSITION_MAP.VEN };
+  if (upper.includes('MOSTRADOR') || upper === 'MOS') return { code: 'MOS', ...POSITION_MAP.MOS };
+  if (upper.includes('ENTREGA A LA MESA') || upper.includes('EALM')) return { code: 'EALM', ...POSITION_MAP.EALM };
+  if (upper === 'PAP' || upper.includes('PRESENTADOR AUTOMAC')) return { code: 'PAP', ...POSITION_MAP.PAP };
+
+  // Si viene un segmento viejo de versiones anteriores, convertimos a una posición base.
+  if (upper.includes('DELIVERY')) return { code: 'PDL', ...POSITION_MAP.PDL };
+  if (upper.includes('AUTOMC') || upper.includes('AUTOMAC') || upper.includes('DRIVE')) return { code: 'TAU', ...POSITION_MAP.TAU };
+  if (upper.includes('SERVICIO')) return { code: 'VEN', ...POSITION_MAP.VEN };
+  if (upper.includes('COCINA')) return { code: 'COCI', ...POSITION_MAP.COCI };
+  if (upper.includes('MANTENIMIENTO')) return { code: 'MTM', ...POSITION_MAP.MTM };
+  if (upper.includes('DESCARGA')) return { code: 'DES', ...POSITION_MAP.DES };
+
+  return { code: code || 'VEN', label: raw || 'Caja / Vendedor', segment: 'SERVICIO' };
+}
+
+function normalizeSegment(value) {
+  return normalizePosition(value).segment;
+}
+
+function segmentOrder(segment) {
+  const idx = SEGMENTS.indexOf(String(segment || '').toUpperCase());
+  return idx >= 0 ? idx : SEGMENTS.length;
+}
+
+function getCrewPosition(crew) {
+  return normalizePosition(crew.pos || crew.position || crew.puesto || crew.area || crew.segment || crew.segmento);
+}
+
+function getCrewSegment(crew) {
+  return getCrewPosition(crew).segment;
+}
 const DAYS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const DAYS_FULL = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 const MONTHS_ES = ['enero','feb','marzo','abr','mayo','jun','jul','ago','sep','oct','nov','dic'];
@@ -348,7 +476,7 @@ let state = {
   myShift: { start: '09:00', end: '18:00' },
   filterOn: false,
   editingId: null,
-  editingPos: 'Caja',
+  editingPos: 'VEN',
 };
 
 // ===============================
@@ -592,10 +720,18 @@ function renderCrewList() {
   let crew = getCrew(state.currentDate);
   if (state.filterOn) crew = crew.filter(inMyShift);
 
+  crew = crew
+    .map(c => { const mapped = getCrewPosition(c); return { ...c, pos: mapped.code, posLabel: mapped.label, segment: mapped.segment }; })
+    .sort((a,b) => {
+      const segDiff = segmentOrder(a.segment) - segmentOrder(b.segment);
+      if (segDiff !== 0) return segDiff;
+      return timeToMin(a.entrada) - timeToMin(b.entrada);
+    });
+
   document.getElementById('statTotal').textContent = crew.length;
   const totalH = crew.reduce((s, c) => s + calcHrs(c.entrada, c.salida), 0);
   document.getElementById('statHoras').textContent = Math.round(totalH) + 'h';
-  const pos = new Set(crew.map(c => c.pos));
+  const pos = new Set(crew.map(c => getCrewSegment(c)));
   document.getElementById('statPos').textContent = pos.size;
   document.getElementById('crewCountLabel').textContent = crew.length + ' persona' + (crew.length !== 1 ? 's' : '');
 
@@ -607,36 +743,50 @@ function renderCrewList() {
     return;
   }
 
-  crew.sort((a,b) => timeToMin(a.entrada) - timeToMin(b.entrada));
+  SEGMENTS.forEach(segment => {
+    const segmentCrew = crew.filter(c => getCrewSegment(c) === segment);
+    if (segmentCrew.length === 0) return;
 
-  crew.forEach((c, i) => {
-    const colorClass = AV_COLORS[i % AV_COLORS.length];
-    const hrs = calcHrs(c.entrada, c.salida);
-    const status = state.filterOn ? crewStatus(c) : '';
-    const card = document.createElement('div');
-    card.className = 'crew-card ' + status;
-    card.innerHTML = `
-      <div class="crew-avatar ${colorClass}">${initials(c.name)}</div>
-      <div class="crew-info">
-        <div class="crew-name">${c.name}</div>
-        <div class="crew-pos">${c.pos} · ${hrs.toFixed(1)}h</div>
+    const block = document.createElement('div');
+    block.className = 'segment-block';
+    block.innerHTML = `
+      <div class="segment-title-row">
+        <span class="segment-title">${segment}</span>
+        <span class="segment-count">${segmentCrew.length} persona${segmentCrew.length !== 1 ? 's' : ''}</span>
       </div>
-      <div class="crew-times">
-        <span>${c.entrada}</span>
-        <span class="arrow">→</span>
-        <span>${c.salida}</span>
-      </div>
-      <button class="crew-menu-btn" onclick="openCrewModal(${c.id})">
-        <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-      </button>
     `;
-    list.appendChild(card);
+
+    segmentCrew.forEach((c, i) => {
+      const colorClass = AV_COLORS[i % AV_COLORS.length];
+      const hrs = calcHrs(c.entrada, c.salida);
+      const status = state.filterOn ? crewStatus(c) : '';
+      const card = document.createElement('div');
+      card.className = 'crew-card ' + status;
+      card.innerHTML = `
+        <div class="crew-avatar ${colorClass}">${initials(c.name)}</div>
+        <div class="crew-info">
+          <div class="crew-name">${escapeHtml(c.name)}</div>
+          <div class="crew-pos">${escapeHtml(c.pos)} · ${escapeHtml(c.posLabel || segment)} · ${hrs.toFixed(1)}h</div>
+        </div>
+        <div class="crew-times">
+          <span>${escapeHtml(c.entrada)}</span>
+          <span class="arrow">→</span>
+          <span>${escapeHtml(c.salida)}</span>
+        </div>
+        <button class="crew-menu-btn" onclick="openCrewModal(${c.id})">
+          <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+        </button>
+      `;
+      block.appendChild(card);
+    });
+
+    list.appendChild(block);
   });
 }
 
 // RENDER TIMELINE
 function renderTimeline() {
-  const crew = getCrew(state.currentDate).slice().sort((a,b) => timeToMin(a.entrada) - timeToMin(b.entrada));
+  const crew = getCrew(state.currentDate).slice().map(c => ({ ...c, pos: getCrewSegment(c) })).sort((a,b) => { const segDiff = segmentOrder(a.segment) - segmentOrder(b.segment); return segDiff !== 0 ? segDiff : timeToMin(a.entrada) - timeToMin(b.entrada); });
   const MIN_H = 6, MAX_H = 24;
   const total = (MAX_H - MIN_H) * 60;
   const myS = timeToMin(state.myShift.start);
@@ -654,13 +804,13 @@ function renderTimeline() {
     const ce = Math.min(timeToMin(c.salida) || MAX_H*60, MAX_H*60);
     const left = Math.round((cs - MIN_H*60) / total * 100);
     const width = Math.max(Math.round((ce - cs) / total * 100), 1);
-    const color = POS_COLORS_MAP[c.pos] || '#888';
+    const color = POS_COLORS_MAP[getCrewSegment(c)] || '#888';
     html += `<div class="tl-row">
       <div class="tl-name" title="${c.name}">${c.name.split(' ')[0]}</div>
       <div class="tl-wrap">
         <div class="my-range" style="left:${myLeft.toFixed(1)}%;width:${myW.toFixed(1)}%"></div>
         <div class="tl-bar" style="left:${left}%;width:${width}%;background:${color}33;border-left:3px solid ${color}">
-          <span style="color:${color};font-size:10px">${c.pos.substring(0,4)}</span>
+          <span style="color:${color};font-size:10px">${getCrewSegment(c).substring(0,4)}</span>
         </div>
       </div>
     </div>`;
@@ -698,6 +848,7 @@ function openCrewModal(id) {
     const chip = document.createElement('div');
     chip.className = 'pos-chip';
     chip.textContent = p;
+    chip.title = POSITION_MAP[p]?.label || p;
     chip.onclick = () => { state.editingPos = p; posGrid.querySelectorAll('.pos-chip').forEach(c => c.classList.remove('selected')); chip.classList.add('selected'); };
     posGrid.appendChild(chip);
   });
@@ -710,14 +861,14 @@ function openCrewModal(id) {
     document.getElementById('inputName').value = c.name;
     document.getElementById('inputEntrada').value = c.entrada;
     document.getElementById('inputSalida').value = c.salida;
-    state.editingPos = c.pos;
+    state.editingPos = getCrewSegment(c);
     document.getElementById('btnDelete').style.display = 'block';
   } else {
     document.getElementById('crewModalTitle').textContent = 'Agregar crew';
     document.getElementById('inputName').value = '';
     document.getElementById('inputEntrada').value = '09:00';
     document.getElementById('inputSalida').value = '17:00';
-    state.editingPos = 'Caja';
+    state.editingPos = 'SERVICIO';
     document.getElementById('btnDelete').style.display = 'none';
   }
 
@@ -732,15 +883,15 @@ function saveCrew() {
   if (!name) { document.getElementById('inputName').focus(); return; }
   const entrada = document.getElementById('inputEntrada').value;
   const salida = document.getElementById('inputSalida').value;
-  const pos = state.editingPos;
+  const pos = normalizeSegment(state.editingPos);
 
   if (!state.data[state.currentDate]) state.data[state.currentDate] = [];
 
   if (state.editingId) {
     const idx = state.data[state.currentDate].findIndex(x => x.id === state.editingId);
-    if (idx >= 0) state.data[state.currentDate][idx] = { ...state.data[state.currentDate][idx], name, entrada, salida, pos };
+    if (idx >= 0) state.data[state.currentDate][idx] = { ...state.data[state.currentDate][idx], name, entrada, salida, pos, segment: pos };
   } else {
-    state.data[state.currentDate].push({ id: Date.now(), name, entrada, salida, pos });
+    state.data[state.currentDate].push({ id: Date.now(), name, entrada, salida, pos, segment: pos });
   }
 
   saveState();
@@ -835,7 +986,7 @@ Formato exacto:
     "name": "Nombre Apellido",
     "entrada": "HH:MM",
     "salida": "HH:MM",
-    "pos": "Posición"
+    "pos": "CODIGO"
   }
 ]
 
@@ -843,8 +994,11 @@ Reglas:
 - Horarios en formato 24 horas.
 - Si un horario aparece como 7, convertirlo a "07:00".
 - Si aparece 7:30, convertirlo a "07:30".
-- Si no podés determinar la posición, usá "Caja".
-- Posiciones válidas: Caja, Drive, Cocina, Freidora, McCafé, Lobby, Sala, Manager, Abaste, Baños.
+- En "pos" devolvé ÚNICAMENTE el CÓDIGO corto que aparece dentro de la barra del turno. Ejemplos válidos: BOD, VEN, DES, INC, TAU, LOB, PDL, PRR, CDL, LEC, CUM, CAU, PPS, ENS, PAP, EALM, MTM, VDL, PAU, EAU, COR, VAM.
+- No devuelvas segmentos como SERVICIO, COCINA, DELIVERY, AUTOMC, LOBBY, MARKETING o DESCARGA. La app clasifica cada código automáticamente.
+- Leé el código de la barra de color, no el color de la barra.
+- Mapeo de referencia: BOD y DES = descarga; LOB = lobby; CUM y LEC = marketing; VEN/MOS/PAP/EALM = servicio; MTM = mantenimiento; INC/ENS/PRR/PPS/COCI = cocina; CDL/PDL/VDL = delivery; TAU/CAU/PAU/EAU/COR/VAM = AutoMac.
+- Si el código no se ve bien, usá "VEN".
 - Si hay nombres repetidos con turnos distintos, incluí ambos.
 - Si un dato no se ve bien, intentá inferirlo solo si es muy claro.`
               }
@@ -872,9 +1026,7 @@ Reglas:
       throw new Error('No se encontraron turnos en el archivo.');
     }
 
-    const normalized = parsed
-      .map(normalizeCrew)
-      .filter(c => c.name && c.entrada && c.salida);
+    const normalized = normalizeCrewList(parsed);
 
     if (normalized.length === 0) {
       throw new Error('Gemini respondió, pero no pude validar nombres y horarios.');
@@ -890,11 +1042,12 @@ Reglas:
       preview += `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:14px">
         <span style="font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(c.name)}</span>
         <span style="color:var(--text2);font-family:'Barlow Condensed',sans-serif;font-size:16px;white-space:nowrap">${escapeHtml(c.entrada)} → ${escapeHtml(c.salida)}</span>
-        <span style="color:var(--text3);font-size:12px;white-space:nowrap">${escapeHtml(c.pos)}</span>
+        <span style="color:var(--text3);font-size:12px;white-space:nowrap">${escapeHtml(c.pos)} · ${escapeHtml(c.segment)}</span>
       </div>`;
     });
 
-    preview += `<button class="btn-primary" style="margin-top:12px" onclick="applyImportFromPreview()">Agregar al día actual</button></div>`;
+    preview += `<button class="btn-primary" style="margin-top:12px" onclick="replaceImportFromPreview()">Reemplazar turnos del día actual</button>
+      <button class="btn-danger" style="margin-top:8px;color:var(--text2);border-color:var(--border2)" onclick="applyImportFromPreview()">Agregar sin borrar los que ya están</button></div>`;
 
     window.__lastImportCrew = normalized;
     document.getElementById('importPreview').innerHTML = preview;
@@ -930,14 +1083,44 @@ function parseGeminiJsonArray(text) {
 }
 
 function normalizeCrew(c) {
-  const pos = POSITIONS.includes(c.pos) ? c.pos : 'Caja';
+  const rawPos = c.pos || c.position || c.puesto || c.area || c.segment || c.segmento;
+  const mapped = normalizePosition(rawPos || 'VEN');
 
   return {
     name: String(c.name || c.nombre || '').trim(),
     entrada: normalizeTime(c.entrada || c.inicio || c.start),
     salida: normalizeTime(c.salida || c.fin || c.end),
-    pos
+    pos: mapped.code,
+    posLabel: mapped.label,
+    segment: mapped.segment
   };
+}
+
+function normalizeCrewList(list) {
+  const seen = new Set();
+  const result = [];
+
+  (list || []).forEach(item => {
+    const c = normalizeCrew(item);
+    if (!c.name || !c.entrada || !c.salida) return;
+
+    const key = [
+      c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim(),
+      c.entrada,
+      c.salida,
+      c.pos
+    ].join('|');
+
+    if (seen.has(key)) return;
+    seen.add(key);
+    result.push(c);
+  });
+
+  return result.sort((a, b) => {
+    const segDiff = segmentOrder(a.segment) - segmentOrder(b.segment);
+    if (segDiff !== 0) return segDiff;
+    return timeToMin(a.entrada) - timeToMin(b.entrada);
+  });
 }
 
 function normalizeTime(value) {
@@ -958,7 +1141,11 @@ function normalizeTime(value) {
 }
 
 function applyImportFromPreview() {
-  applyImport(window.__lastImportCrew || []);
+  applyImport(window.__lastImportCrew || [], 'append');
+}
+
+function replaceImportFromPreview() {
+  applyImport(window.__lastImportCrew || [], 'replace');
 }
 
 function escapeHtml(value) {
@@ -970,13 +1157,54 @@ function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
-function applyImport(crewArr) {
+function applyImport(crewArr, mode = 'append') {
+  const incoming = normalizeCrewList(crewArr);
+
+  if (mode === 'replace') {
+    state.data[state.currentDate] = [];
+  }
+
   if (!state.data[state.currentDate]) state.data[state.currentDate] = [];
-  crewArr.forEach(c => {
-    state.data[state.currentDate].push({ id: Date.now() + Math.random(), name: c.name, entrada: c.entrada, salida: c.salida, pos: c.pos });
+
+  const existingKeys = new Set(
+    state.data[state.currentDate].map(item => {
+      const c = normalizeCrew(item);
+      return [
+        c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim(),
+        c.entrada,
+        c.salida,
+        c.pos
+      ].join('|');
+    })
+  );
+
+  let added = 0;
+  incoming.forEach(c => {
+    const key = [
+      c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim(),
+      c.entrada,
+      c.salida,
+      c.pos
+    ].join('|');
+
+    if (mode === 'append' && existingKeys.has(key)) return;
+
+    state.data[state.currentDate].push({
+      id: Date.now() + Math.random(),
+      name: c.name,
+      entrada: c.entrada,
+      salida: c.salida,
+      pos: c.pos,
+      posLabel: c.posLabel,
+      segment: c.segment
+    });
+    existingKeys.add(key);
+    added++;
   });
+
   saveState();
-  document.getElementById('importPreview').innerHTML = '<div style="padding:16px;text-align:center;color:#34a853;font-size:15px;font-weight:600">✓ Turnos agregados correctamente</div>';
+  const actionText = mode === 'replace' ? 'reemplazados' : 'agregados';
+  document.getElementById('importPreview').innerHTML = `<div style="padding:16px;text-align:center;color:#34a853;font-size:15px;font-weight:600">✓ ${added} turnos ${actionText} correctamente</div>`;
   switchPage('turnos', document.querySelector('.nav-btn'));
   renderAll();
 }
