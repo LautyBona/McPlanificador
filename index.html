@@ -39,6 +39,11 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .topbar { background: var(--red); padding: 12px 16px 10px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
 .topbar-title { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: 0.03em; color: #fff; }
 .topbar-date { font-size: 12px; color: rgba(255,255,255,0.75); margin-top: 2px; }
+.cloud-status { margin: 10px 16px 0; padding: 8px 10px; background: var(--surface); border: 0.5px solid var(--border); border-radius: 8px; color: var(--text2); font-size: 12px; display: flex; align-items: center; gap: 8px; }
+.cloud-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); flex-shrink: 0; }
+.cloud-status.ok .cloud-dot { background: #34a853; }
+.cloud-status.warn .cloud-dot { background: var(--yellow); }
+.cloud-status.error .cloud-dot { background: var(--red); }
 .topbar-icon-btn { background: rgba(255,255,255,0.15); border: none; border-radius: 8px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; font-size: 18px; }
 
 /* NAV */
@@ -167,6 +172,11 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     <button class="topbar-icon-btn" onclick="openShiftModal()" title="Mi turno">
       <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
     </button>
+  </div>
+
+  <div class="cloud-status warn" id="cloudStatus">
+    <span class="cloud-dot"></span>
+    <span id="cloudStatusText">Guardado local en este dispositivo</span>
   </div>
 
   <!-- TURNOS PAGE -->
@@ -317,6 +327,9 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
 <script>
 const POSITIONS = ['Caja','Drive','Cocina','Freidora','McCafé','Lobby','Sala','Manager','Abaste','Baños'];
 const AV_COLORS = ['c0','c1','c2','c3','c4','c5','c6','c7'];
@@ -337,6 +350,32 @@ let state = {
   editingId: null,
   editingPos: 'Caja',
 };
+
+// ===============================
+// GUARDADO EN LA NUBE CON FIREBASE
+// ===============================
+// Para que se vea igual desde la PC y el celu:
+// 1) Creá un proyecto en Firebase.
+// 2) Activá Firestore Database.
+// 3) Registrá una app Web y pegá acá tu firebaseConfig.
+// 4) Mientras estos datos estén sin completar, la app guarda solo en este dispositivo.
+const FIREBASE_CONFIG = {
+  apiKey: 'AIzaSyCmwBqL9rmHMO5Kt2cdpnidExEjwPgehd0',
+  authDomain: 'mcplanificador-73519.firebaseapp.com',
+  projectId: 'mcplanificador-73519',
+  storageBucket: 'mcplanificador-73519.firebasestorage.app',
+  messagingSenderId: '209774698674',
+  appId: '1:209774698674:web:1390715a654429617029ab',
+  measurementId: 'G-2C9TD7E1LM'
+};
+
+// Si usás el mismo DOC_ID en la PC y en el celu, ambos ven los mismos turnos.
+const FIREBASE_DOC_ID = 'turnos_mcd_lautaro';
+
+let db = null;
+let cloudReady = false;
+let cloudLoading = false;
+let saveCloudTimer = null;
 
 function todayKey() {
   return new Date().toISOString().split('T')[0];
@@ -372,6 +411,21 @@ function initials(name) {
   return (p[0][0] + (p[1] ? p[1][0] : '')).toUpperCase();
 }
 
+function setCloudStatus(type, text) {
+  const box = document.getElementById('cloudStatus');
+  const label = document.getElementById('cloudStatusText');
+  if (!box || !label) return;
+  box.className = 'cloud-status ' + type;
+  label.textContent = text;
+}
+
+function hasFirebaseConfig() {
+  return FIREBASE_CONFIG.apiKey &&
+    !FIREBASE_CONFIG.apiKey.includes('PEGÁ_ACÁ') &&
+    FIREBASE_CONFIG.projectId &&
+    !FIREBASE_CONFIG.projectId.includes('PEGÁ_ACÁ');
+}
+
 function loadState() {
   try {
     const saved = localStorage.getItem('mcplanner_v2');
@@ -384,23 +438,87 @@ function loadState() {
 }
 
 function saveState() {
-  localStorage.setItem('mcplanner_v2', JSON.stringify({ data: state.data, myShift: state.myShift }));
+  localStorage.setItem('mcplanner_v2', JSON.stringify({
+    data: state.data,
+    myShift: state.myShift,
+    updatedAtLocal: new Date().toISOString()
+  }));
+  saveCloudDebounced();
 }
 
 function getCrew(dateKey) {
-  if (!state.data[dateKey]) state.data[dateKey] = getSampleCrew();
+  if (!state.data[dateKey]) state.data[dateKey] = [];
   return state.data[dateKey];
 }
 
-function getSampleCrew() {
-  return [
-    {id: Date.now()+1, name:'Martina López', entrada:'07:00', salida:'15:00', pos:'Caja'},
-    {id: Date.now()+2, name:'Juan Pereyra', entrada:'07:00', salida:'15:00', pos:'Cocina'},
-    {id: Date.now()+3, name:'Sofía Ramos', entrada:'09:00', salida:'17:00', pos:'Drive'},
-    {id: Date.now()+4, name:'Lucas Gómez', entrada:'11:00', salida:'19:00', pos:'Freidora'},
-    {id: Date.now()+5, name:'Vale Cruz', entrada:'13:00', salida:'21:00', pos:'McCafé'},
-    {id: Date.now()+6, name:'Emiliano Torres', entrada:'15:00', salida:'23:00', pos:'Lobby'},
-  ];
+async function initCloud() {
+  if (!hasFirebaseConfig()) {
+    setCloudStatus('warn', 'Guardado local: falta configurar Firebase para ver lo mismo en el celu');
+    return;
+  }
+
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.firestore();
+    cloudReady = true;
+    setCloudStatus('warn', 'Conectando con la nube...');
+    await loadCloudState();
+  } catch (e) {
+    cloudReady = false;
+    setCloudStatus('error', 'No se pudo conectar con Firebase: ' + (e.message || 'error desconocido'));
+  }
+}
+
+async function loadCloudState() {
+  if (!cloudReady || !db) return;
+
+  cloudLoading = true;
+  try {
+    const docRef = db.collection('turnosManager').doc(FIREBASE_DOC_ID);
+    const snap = await docRef.get();
+
+    if (snap.exists) {
+      const cloud = snap.data() || {};
+      state.data = cloud.data || {};
+      state.myShift = cloud.myShift || state.myShift;
+      localStorage.setItem('mcplanner_v2', JSON.stringify({
+        data: state.data,
+        myShift: state.myShift,
+        updatedAtLocal: new Date().toISOString()
+      }));
+      setCloudStatus('ok', 'Nube conectada: datos sincronizados');
+      renderAll();
+    } else {
+      await saveCloudState();
+      setCloudStatus('ok', 'Nube conectada: se creó tu espacio de turnos');
+    }
+  } catch (e) {
+    setCloudStatus('error', 'Error leyendo Firebase: ' + (e.message || 'error desconocido'));
+  } finally {
+    cloudLoading = false;
+  }
+}
+
+function saveCloudDebounced() {
+  if (!cloudReady || !db || cloudLoading) return;
+  clearTimeout(saveCloudTimer);
+  saveCloudTimer = setTimeout(saveCloudState, 500);
+}
+
+async function saveCloudState() {
+  if (!cloudReady || !db) return;
+
+  try {
+    await db.collection('turnosManager').doc(FIREBASE_DOC_ID).set({
+      data: state.data,
+      myShift: state.myShift,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    setCloudStatus('ok', 'Nube conectada: cambios guardados');
+  } catch (e) {
+    setCloudStatus('error', 'Error guardando en Firebase: ' + (e.message || 'error desconocido'));
+  }
 }
 
 function inMyShift(crew) {
@@ -616,7 +734,7 @@ function saveCrew() {
   const salida = document.getElementById('inputSalida').value;
   const pos = state.editingPos;
 
-  if (!state.data[state.currentDate]) state.data[state.currentDate] = getSampleCrew();
+  if (!state.data[state.currentDate]) state.data[state.currentDate] = [];
 
   if (state.editingId) {
     const idx = state.data[state.currentDate].findIndex(x => x.id === state.editingId);
@@ -884,6 +1002,7 @@ function renderAll() {
 // INIT
 loadState();
 renderAll();
+initCloud();
 
 // Service Worker registration
 if ('serviceWorker' in navigator) {
