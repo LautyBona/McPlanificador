@@ -536,6 +536,7 @@ const POSITION_MAP = {
   // COCINA
   'INC': { label: 'Iniciador Cocina', segment: 'COCINA' },
   'ENS': { label: 'Ensamblador', segment: 'COCINA' },
+  'ESA': { label: 'Ensamblador', segment: 'COCINA' },
   'PRR': { label: 'Parrilla', segment: 'COCINA' },
   'PPS': { label: 'Papas', segment: 'SERVICIO' },
   'COCI': { label: 'Cocina', segment: 'COCINA' },
@@ -612,6 +613,7 @@ function normalizePosition(value) {
   if (upper.includes('VERIFICADOR')) return { code: 'VAM', ...POSITION_MAP.VAM };
 
   if (upper.includes('INICIADOR') || upper === 'INC') return { code: 'INC', ...POSITION_MAP.INC };
+  if (upper === 'ESA') return { code: 'ESA', ...POSITION_MAP.ESA };
   if (upper.includes('ENSAMBLADOR') || upper === 'ENS') return { code: 'ENS', ...POSITION_MAP.ENS };
   if (upper.includes('PARRILLA') || upper === 'PRR') return { code: 'PRR', ...POSITION_MAP.PRR };
   if (upper.includes('PAPAS') || upper === 'PPS') return { code: 'PPS', ...POSITION_MAP.PPS };
@@ -1024,6 +1026,7 @@ const MAP_POSITION_COORDS = {
   INC:  { x: 18.0, y: 28.0, cols: 2 },
   COND: { x: 29.0, y: 28.0, cols: 2 },
   ENS:  { x: 18.0, y: 42.0, cols: 2 },
+  ESA:  { x: 18.0, y: 42.0, cols: 2 },
   COCI: { x: 29.0, y: 42.0, cols: 2 },
 
   VEN:  { x: 51.0, y: 36.0, cols: 2 },
@@ -1339,10 +1342,10 @@ Reglas:
 - Horarios en formato 24 horas.
 - Si un horario aparece como 7, convertirlo a "07:00".
 - Si aparece 7:30, convertirlo a "07:30".
-- En "pos" devolvé ÚNICAMENTE el CÓDIGO corto que aparece dentro de la barra del turno. Ejemplos válidos: BOD, VEN, DES, INC, TAU, LOB, PDL, PRR, CDL, LEC, CUM, CAU, PPS, ENS, PAP, EALM, MTM, VDL, PAU, EAU, COR, VAM.
+- En "pos" devolvé ÚNICAMENTE el CÓDIGO corto que aparece dentro de la barra del turno. Ejemplos válidos: BOD, VEN, DES, INC, TAU, LOB, PDL, PRR, CDL, LEC, CUM, CAU, PPS, ENS, ESA, PAP, EALM, MTM, VDL, PAU, EAU, COR, VAM.
 - No devuelvas segmentos como SERVICIO, COCINA, DELIVERY, AUTOMC, LOBBY, MARKETING o DESCARGA. La app clasifica cada código automáticamente.
 - Leé el código de la barra de color, no el color de la barra.
-- Mapeo de referencia: BOD y DES = descarga; LOB = lobby; CUM y LEC = marketing; VEN/MOS/PAP/EALM/PPS = servicio; MTM = mantenimiento; INC/ENS/PRR/COCI = cocina; CDL/PDL/VDL = delivery; TAU/CAU/PAU/EAU/COR/VAM = AutoMac.
+- Mapeo de referencia: BOD y DES = descarga; LOB = lobby; CUM y LEC = marketing; VEN/MOS/PAP/EALM/PPS = servicio; MTM = mantenimiento; INC/ENS/ESA/PRR/COCI = cocina; CDL/PDL/VDL = delivery; TAU/CAU/PAU/EAU/COR/VAM = AutoMac.
 - Si el código no se ve bien, usá "VEN".
 - Si hay nombres repetidos con turnos distintos, incluí ambos.
 - Si un dato no se ve bien, intentá inferirlo solo si es muy claro.`
