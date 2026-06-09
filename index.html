@@ -537,7 +537,7 @@ const POSITION_MAP = {
   'INC': { label: 'Iniciador Cocina', segment: 'COCINA' },
   'ENS': { label: 'Ensamblador', segment: 'COCINA' },
   'PRR': { label: 'Parrilla', segment: 'COCINA' },
-  'PPS': { label: 'Papas', segment: 'COCINA' },
+  'PPS': { label: 'Papas', segment: 'SERVICIO' },
   'COCI': { label: 'Cocina', segment: 'COCINA' },
 
   // SERVICIO
@@ -1342,7 +1342,7 @@ Reglas:
 - En "pos" devolvé ÚNICAMENTE el CÓDIGO corto que aparece dentro de la barra del turno. Ejemplos válidos: BOD, VEN, DES, INC, TAU, LOB, PDL, PRR, CDL, LEC, CUM, CAU, PPS, ENS, PAP, EALM, MTM, VDL, PAU, EAU, COR, VAM.
 - No devuelvas segmentos como SERVICIO, COCINA, DELIVERY, AUTOMC, LOBBY, MARKETING o DESCARGA. La app clasifica cada código automáticamente.
 - Leé el código de la barra de color, no el color de la barra.
-- Mapeo de referencia: BOD y DES = descarga; LOB = lobby; CUM y LEC = marketing; VEN/MOS/PAP/EALM = servicio; MTM = mantenimiento; INC/ENS/PRR/PPS/COCI = cocina; CDL/PDL/VDL = delivery; TAU/CAU/PAU/EAU/COR/VAM = AutoMac.
+- Mapeo de referencia: BOD y DES = descarga; LOB = lobby; CUM y LEC = marketing; VEN/MOS/PAP/EALM/PPS = servicio; MTM = mantenimiento; INC/ENS/PRR/COCI = cocina; CDL/PDL/VDL = delivery; TAU/CAU/PAU/EAU/COR/VAM = AutoMac.
 - Si el código no se ve bien, usá "VEN".
 - Si hay nombres repetidos con turnos distintos, incluí ambos.
 - Si un dato no se ve bien, intentá inferirlo solo si es muy claro.`
