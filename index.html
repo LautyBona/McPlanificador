@@ -148,6 +148,13 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .form-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; display: block; font-weight: 500; }
 .form-input { width: 100%; background: var(--surface2); border: 0.5px solid var(--border2); border-radius: var(--radius-sm); padding: 10px 12px; color: var(--text); font-size: 15px; font-family: 'Barlow', sans-serif; }
 .form-input:focus { outline: none; border-color: var(--yellow); }
+.form-textarea {
+  min-height: 58px;
+  resize: none;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .pos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .pos-chip { padding: 8px 4px; text-align: center; background: var(--surface2); border: 0.5px solid var(--border); border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.15s; }
@@ -162,6 +169,53 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .c0{background:#DA291C;color:#fff} .c1{background:#FFC72C;color:#111} .c2{background:#1a73e8;color:#fff}
 .c3{background:#34a853;color:#fff} .c4{background:#9c27b0;color:#fff} .c5{background:#ff5722;color:#fff}
 .c6{background:#00bcd4;color:#111} .c7{background:#795548;color:#fff}
+
+/* MAP PAGE */
+.app.wide-mode { max-width: 1400px; }
+.map-toolbar { padding: 0 16px 10px; }
+.map-scroll { margin: 0 12px 14px; overflow: auto; border-radius: 14px; border: 0.5px solid var(--border2); background: #d9d9d9; }
+.store-map { position: relative; width: 1050px; height: 720px; background: #f4f4f4; color: #111; overflow: hidden; }
+.map-zone { position: absolute; border: 3px solid #111; background: #f8f8f8; padding: 8px; overflow: hidden; }
+.map-zone-title { position: relative; z-index: 2; font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 800; text-align: center; text-transform: uppercase; }
+.map-subzone { position: absolute; border: 1.5px solid #222; background: rgba(255,255,255,0.65); border-radius: 4px; }
+.map-subzone span { display: block; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; text-align: center; padding-top: 4px; }
+.map-equipment { position: absolute; border: 2px solid #555; background: #d7d7d7; border-radius: 4px; }
+.map-equipment.dark { background: #999; }
+.map-table { position: absolute; width: 66px; height: 38px; border: 2px solid #6d4c2f; background: #b98a5d; border-radius: 4px; }
+.map-table::before, .map-table::after { content: ''; position: absolute; top: 7px; width: 12px; height: 24px; border: 1px solid #6d4c2f; background: #caa377; }
+.map-table::before { left: -15px; }
+.map-table::after { right: -15px; }
+.map-door { position: absolute; width: 72px; height: 10px; border-top: 3px solid #111; border-left: 3px solid #111; border-right: 3px solid #111; }
+.map-entry-label { position: absolute; font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 800; color: #DA291C; }
+.map-person-layer { position: absolute; inset: 0; pointer-events: none; }
+.map-person-stack {
+  position: absolute;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(132px, 1fr));
+  gap: 5px;
+  pointer-events: auto;
+  width: max-content;
+  max-width: 290px;
+}
+.map-person-stack.single-column { grid-template-columns: minmax(132px, 155px); }
+.map-person-stack.compact .map-person { padding: 4px 6px; }
+.map-person-stack.compact .map-person-code { min-width: 30px; height: 30px; font-size: 12px; }
+.map-person-stack.compact .map-person-name { font-size: 11px; }
+.map-person-stack.compact .map-person-time { font-size: 9px; }
+.map-person { display: flex; align-items: center; gap: 6px; padding: 5px 7px; background: rgba(15,15,15,0.9); color: #fff; border-radius: 9px; border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 3px 10px rgba(0,0,0,0.28); cursor: pointer; }
+.map-person-code { min-width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 13px; color: #fff; flex-shrink: 0; }
+.map-person-text { min-width: 0; }
+.map-person-name { font-size: 12px; font-weight: 600; line-height: 1.05; white-space: normal; }
+.map-person-time { font-size: 10px; color: #bbb; margin-top: 2px; }
+.map-legend { margin: 0 16px 14px; background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; padding: 12px; display: flex; gap: 12px; flex-wrap: wrap; }
+.map-legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text2); }
+.map-legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+.map-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #555; font-size: 16px; pointer-events: none; }
+@media (max-width: 600px) {
+  .map-scroll { margin-left: 8px; margin-right: 8px; }
+  .store-map { transform-origin: top left; }
+}
+
 </style>
 </head>
 <body>
@@ -231,6 +285,129 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     <div class="timeline-section" id="timelineContent"></div>
   </div>
 
+
+  <!-- MAP PAGE -->
+  <div class="page" id="page-map">
+    <div class="day-scroll" id="dayScroll3"></div>
+
+    <div class="map-toolbar">
+      <div class="filter-row" style="padding:0">
+        <span class="filter-label">Solo mi turno</span>
+        <div class="toggle" id="filterToggleMap" onclick="toggleFilter()">
+          <div class="toggle-thumb"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="map-scroll">
+      <div class="store-map" id="storeMap">
+        <!-- CAJAS AUTO -->
+        <div class="map-zone" style="left:1.5%;top:1.5%;width:31%;height:19%;">
+          <div class="map-zone-title">Caja Auto</div>
+          <div class="map-subzone" style="left:3%;top:22%;width:45%;height:66%;"><span>Caja 1</span></div>
+          <div class="map-subzone" style="left:51%;top:22%;width:45%;height:66%;"><span>Caja 2</span></div>
+          <div class="map-equipment dark" style="left:9%;bottom:10%;width:58px;height:36px;"></div>
+          <div class="map-equipment dark" style="left:61%;bottom:10%;width:58px;height:36px;"></div>
+        </div>
+
+        <!-- BODEGA -->
+        <div class="map-zone" style="left:48%;top:1.5%;width:18%;height:19%;">
+          <div class="map-zone-title">Bodega</div>
+          <div class="map-equipment dark" style="left:10%;bottom:10%;width:80%;height:34px;"></div>
+        </div>
+
+        <!-- BACKY -->
+        <div class="map-zone" style="left:67%;top:1.5%;width:31.5%;height:19%;background:#f8f8f8;">
+          <div class="map-zone-title">Backy</div>
+          <div class="map-equipment dark" style="left:12%;top:30%;width:52px;height:80px;"></div>
+          <div class="map-equipment" style="right:12%;top:34%;width:70px;height:42px;"></div>
+        </div>
+
+        <!-- LEFT WALL STACK -->
+        <div class="map-zone" style="left:1.5%;top:22%;width:13%;height:18%;">
+          <div class="map-zone-title">Fritos</div>
+          <div class="map-equipment dark" style="left:30%;top:34%;width:48px;height:72px;"></div>
+        </div>
+
+        <div class="map-zone" style="left:1.5%;top:40%;width:13%;height:18%;">
+          <div class="map-zone-title">Parrilla</div>
+          <div class="map-equipment dark" style="left:18%;top:40%;width:78px;height:48px;"></div>
+        </div>
+
+        <div class="map-zone" style="left:1.5%;top:58%;width:13%;height:11%;">
+          <div class="map-zone-title">Papas</div>
+          <div class="map-equipment" style="left:28%;top:38%;width:50px;height:38px;"></div>
+        </div>
+
+        <div class="map-zone" style="left:1.5%;top:69%;width:13%;height:13%;">
+          <div class="map-zone-title">Corredor / Presentador AutoMac</div>
+          <div class="map-equipment" style="left:15%;bottom:9%;width:78px;height:30px;"></div>
+        </div>
+
+        <div class="map-zone" style="left:1.5%;top:82%;width:13%;height:16%;">
+          <div class="map-zone-title">Delivery</div>
+          <div class="map-equipment dark" style="left:25%;bottom:10%;width:56px;height:46px;"></div>
+        </div>
+
+        <!-- COCINA -->
+        <div class="map-zone" style="left:17%;top:22%;width:27%;height:50%;">
+          <div class="map-zone-title">Cocina</div>
+          <div class="map-subzone" style="left:5%;top:13%;width:42%;height:18%;"><span>INC</span></div>
+          <div class="map-subzone" style="left:53%;top:13%;width:42%;height:18%;"><span>COND</span></div>
+          <div class="map-subzone" style="left:5%;top:35%;width:42%;height:18%;"><span>ENS</span></div>
+          <div class="map-subzone" style="left:53%;top:35%;width:42%;height:18%;"><span>COCI</span></div>
+          <div class="map-equipment dark" style="left:18%;top:59%;width:64%;height:58px;"></div>
+        </div>
+
+        <!-- ZONA HAMBURGUESAS -->
+        <div class="map-zone" style="left:17%;top:72%;width:27%;height:12%;">
+          <div class="map-zone-title">Zona de hamburguesas</div>
+          <div class="map-equipment dark" style="left:12%;bottom:9%;width:76%;height:42px;"></div>
+        </div>
+
+        <!-- TORRE -->
+        <div class="map-zone" style="left:17%;top:84%;width:27%;height:14%;">
+          <div class="map-zone-title">Torre Servicio</div>
+          <div class="map-equipment" style="left:38%;bottom:10%;width:70px;height:58px;"></div>
+        </div>
+
+        <!-- HUECO / PASO -->
+        <div style="position:absolute;left:45%;top:31%;width:3%;height:50%;background:#f4f4f4;border-top:3px solid #111;border-bottom:3px solid #111;"></div>
+
+        <!-- CAJA SERVICIO -->
+        <div class="map-zone" style="left:49%;top:30%;width:20%;height:24%;">
+          <div class="map-zone-title">Caja Servicio</div>
+          <div class="map-equipment dark" style="left:38%;bottom:12%;width:68px;height:44px;"></div>
+        </div>
+
+        <!-- EALM -->
+        <div class="map-zone" style="left:49%;top:54%;width:20%;height:27%;">
+          <div class="map-zone-title">Presentador / EALM Servicio</div>
+          <div class="map-equipment dark" style="left:12%;bottom:10%;width:76%;height:54px;"></div>
+        </div>
+
+        <!-- LOBBY -->
+        <div class="map-zone" style="left:71%;top:22%;width:27.5%;height:76%;background:#f8f8f8;">
+          <div class="map-zone-title">Lobby</div>
+          <div class="map-table" style="left:20%;top:17%;"></div>
+          <div class="map-table" style="left:62%;top:17%;"></div>
+          <div class="map-table" style="left:20%;top:40%;"></div>
+          <div class="map-table" style="left:62%;top:40%;"></div>
+          <div class="map-table" style="left:20%;top:64%;"></div>
+          <div class="map-table" style="left:62%;top:64%;"></div>
+        </div>
+
+        <!-- ENTRADA -->
+        <div class="map-door" style="left:79%;bottom:0;"></div>
+        <div class="map-entry-label" style="left:77%;bottom:2.5%;">Entrada principal</div>
+
+        <div class="map-person-layer" id="mapPersonLayer"></div>
+      </div>
+    </div>
+
+    <div class="map-legend" id="mapLegend"></div>
+  </div>
+
   <!-- IMPORT PAGE -->
   <div class="page" id="page-import">
     <div class="import-section">
@@ -273,6 +450,11 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
       <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       Timeline
     </button>
+
+    <button class="nav-btn" onclick="switchPage('map',this)">
+      <svg viewBox="0 0 24 24"><path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3z"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+      Mapa
+    </button>
     <button class="nav-btn" onclick="switchPage('import',this)">
       <svg viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
       Importar
@@ -290,7 +472,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     <div class="modal-title" id="crewModalTitle">Agregar crew</div>
     <div class="form-group">
       <label class="form-label">NOMBRE</label>
-      <input class="form-input" id="inputName" placeholder="Nombre completo">
+      <textarea class="form-input form-textarea" id="inputName" placeholder="Nombre completo" rows="2"></textarea>
     </div>
     <div class="form-row form-group">
       <div>
@@ -388,7 +570,8 @@ const POS_COLORS_MAP = {
   'SERVICIO':'#DA291C',
   'LOBBY':'#34a853',
   'MARKETING':'#9c27b0',
-  'DESCARGA':'#607d8b'
+  'MANTENIMIENTO':'#9e9e9e',
+  'DESCARGA':'#111111'
 };
 
 function cleanPositionCode(value) {
@@ -698,6 +881,7 @@ function renderDays(containerId) {
 function scrollToActive() {
   renderDays('dayScroll');
   renderDays('dayScroll2');
+  renderDays('dayScroll3');
 }
 
 // RENDER TOPBAR
@@ -786,7 +970,7 @@ function renderCrewList() {
 
 // RENDER TIMELINE
 function renderTimeline() {
-  const crew = getCrew(state.currentDate).slice().map(c => ({ ...c, pos: getCrewSegment(c) })).sort((a,b) => { const segDiff = segmentOrder(a.segment) - segmentOrder(b.segment); return segDiff !== 0 ? segDiff : timeToMin(a.entrada) - timeToMin(b.entrada); });
+  const crew = getCrew(state.currentDate).slice().map(c => { const mapped = getCrewPosition(c); return { ...c, pos: mapped.code, segment: mapped.segment }; }).sort((a,b) => { const segDiff = segmentOrder(a.segment) - segmentOrder(b.segment); return segDiff !== 0 ? segDiff : timeToMin(a.entrada) - timeToMin(b.entrada); });
   const MIN_H = 6, MAX_H = 24;
   const total = (MAX_H - MIN_H) * 60;
   const myS = timeToMin(state.myShift.start);
@@ -822,11 +1006,159 @@ function renderTimeline() {
   document.getElementById('timelineContent').innerHTML = html;
 }
 
+
+// MAPA DE POSICIONES
+const MAP_POSITION_COORDS = {
+  TAU:  { x: 3.0,  y: 6.0,  cols: 1 },
+  CAU:  { x: 15.5, y: 6.0,  cols: 1 },
+  PAU:  { x: 25.0, y: 6.0,  cols: 1 },
+  EAU:  { x: 25.0, y: 13.0, cols: 1 },
+  VAM:  { x: 15.5, y: 13.0, cols: 1 },
+
+  BOD:  { x: 49.0, y: 6.0,  cols: 1 },
+  DES:  { x: 57.0, y: 12.0, cols: 1 },
+  MTM:  { x: 70.0, y: 7.0,  cols: 2 },
+
+  PPS:  { x: 3.0,  y: 60.5, cols: 1 },
+  PRR:  { x: 2.5,  y: 44.5, cols: 1 },
+  INC:  { x: 18.0, y: 28.0, cols: 2 },
+  COND: { x: 29.0, y: 28.0, cols: 2 },
+  ENS:  { x: 18.0, y: 42.0, cols: 2 },
+  COCI: { x: 29.0, y: 42.0, cols: 2 },
+
+  VEN:  { x: 51.0, y: 36.0, cols: 2 },
+  MOS:  { x: 19.0, y: 87.0, cols: 2 },
+  PAP:  { x: 19.0, y: 87.0, cols: 2 },
+  EALM: { x: 51.0, y: 60.0, cols: 2 },
+
+  COR:  { x: 2.5,  y: 72.0, cols: 1 },
+  CDL:  { x: 2.5,  y: 86.0, cols: 1 },
+  PDL:  { x: 2.5,  y: 90.5, cols: 1 },
+  VDL:  { x: 2.5,  y: 95.0, cols: 1 },
+
+  LOB:  { x: 75.0, y: 28.0, cols: 2 },
+  CUM:  { x: 75.0, y: 55.0, cols: 2 },
+  LEC:  { x: 75.0, y: 70.0, cols: 2 }
+};
+
+const MAP_POSITION_FALLBACK = { x: 51.0, y: 36.0, cols: 2 };
+
+function getMapPositionCoords(code) {
+  const normalized = cleanPositionCode(code);
+  return MAP_POSITION_COORDS[normalized] || MAP_POSITION_FALLBACK;
+}
+
+function renderMapLegend() {
+  const el = document.getElementById('mapLegend');
+  if (!el) return;
+  el.innerHTML = SEGMENTS.map(segment => `
+    <div class="map-legend-item">
+      <span class="map-legend-dot" style="background:${POS_COLORS_MAP[segment] || '#888'}"></span>
+      <span>${segment}</span>
+    </div>
+  `).join('');
+}
+
+
+function shortEmployeeName(fullName) {
+  const parts = String(fullName || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0];
+
+  const firstName = parts[0];
+  const lastName = parts[parts.length - 1];
+  const shortLastName = lastName.slice(0, 4);
+
+  const formatWord = word =>
+    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+
+  return `${formatWord(firstName)} ${formatWord(shortLastName)}`;
+}
+
+function renderMap() {
+  const layer = document.getElementById('mapPersonLayer');
+  if (!layer) return;
+
+  let crew = getCrew(state.currentDate).slice();
+  if (state.filterOn) crew = crew.filter(inMyShift);
+
+  const groupedByPosition = {};
+
+  crew.forEach(person => {
+    const mapped = getCrewPosition(person);
+    const code = mapped.code || 'VEN';
+
+    if (!groupedByPosition[code]) groupedByPosition[code] = [];
+    groupedByPosition[code].push({
+      ...person,
+      pos: code,
+      segment: mapped.segment
+    });
+  });
+
+  layer.innerHTML = '';
+
+  Object.entries(groupedByPosition).forEach(([code, people]) => {
+    const coords = getMapPositionCoords(code);
+    const stack = document.createElement('div');
+
+    stack.className = 'map-person-stack';
+    if (coords.cols === 1) stack.classList.add('single-column');
+    if (people.length >= 4) stack.classList.add('compact');
+
+    stack.style.left = coords.x + '%';
+    stack.style.top = coords.y + '%';
+
+    people
+      .sort((a, b) => {
+        const timeDiff = timeToMin(a.entrada) - timeToMin(b.entrada);
+        if (timeDiff !== 0) return timeDiff;
+        return a.name.localeCompare(b.name, 'es');
+      })
+      .forEach(person => {
+        const item = document.createElement('div');
+        item.className = 'map-person';
+        item.onclick = () => openCrewModal(person.id);
+        item.title = `${person.name} · ${person.pos} · ${person.entrada} a ${person.salida}`;
+
+        item.innerHTML = `
+          <div class="map-person-code" style="background:${POS_COLORS_MAP[person.segment] || '#777'}">
+            ${escapeHtml(person.pos)}
+          </div>
+          <div class="map-person-text">
+            <div class="map-person-name">${escapeHtml(shortEmployeeName(person.name))}</div>
+            <div class="map-person-time">${escapeHtml(person.entrada)} → ${escapeHtml(person.salida)}</div>
+          </div>
+        `;
+
+        stack.appendChild(item);
+      });
+
+    layer.appendChild(stack);
+  });
+
+  if (crew.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'map-empty';
+    empty.textContent = 'No hay personas cargadas para este día';
+    layer.appendChild(empty);
+  }
+
+  renderMapLegend();
+}
+
 // TOGGLE FILTER
 function toggleFilter() {
   state.filterOn = !state.filterOn;
   document.getElementById('filterToggle').classList.toggle('on', state.filterOn);
+  const mapToggle = document.getElementById('filterToggleMap');
+  if (mapToggle) mapToggle.classList.toggle('on', state.filterOn);
   renderCrewList();
+  renderMap();
 }
 
 // PAGE SWITCH
@@ -835,7 +1167,9 @@ function switchPage(name, btn) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   btn.classList.add('active');
+  document.querySelector('.app').classList.toggle('wide-mode', name === 'map');
   if (name === 'timeline') renderTimeline();
+  if (name === 'map') renderMap();
   document.querySelector('.fab').style.display = name === 'turnos' ? 'flex' : 'none';
 }
 
@@ -861,19 +1195,28 @@ function openCrewModal(id) {
     document.getElementById('inputName').value = c.name;
     document.getElementById('inputEntrada').value = c.entrada;
     document.getElementById('inputSalida').value = c.salida;
-    state.editingPos = getCrewSegment(c);
+    state.editingPos = getCrewPosition(c).code;
     document.getElementById('btnDelete').style.display = 'block';
   } else {
     document.getElementById('crewModalTitle').textContent = 'Agregar crew';
     document.getElementById('inputName').value = '';
     document.getElementById('inputEntrada').value = '09:00';
     document.getElementById('inputSalida').value = '17:00';
-    state.editingPos = 'SERVICIO';
+    state.editingPos = 'VEN';
     document.getElementById('btnDelete').style.display = 'none';
   }
 
   posGrid.querySelectorAll('.pos-chip').forEach(c => { if (c.textContent === state.editingPos) c.classList.add('selected'); });
   document.getElementById('crewModal').classList.add('show');
+  setTimeout(resizeNameField, 0);
+}
+
+
+function resizeNameField() {
+  const field = document.getElementById('inputName');
+  if (!field || field.tagName !== 'TEXTAREA') return;
+  field.style.height = 'auto';
+  field.style.height = Math.max(58, field.scrollHeight) + 'px';
 }
 
 function closeCrewModal() { document.getElementById('crewModal').classList.remove('show'); }
@@ -883,15 +1226,17 @@ function saveCrew() {
   if (!name) { document.getElementById('inputName').focus(); return; }
   const entrada = document.getElementById('inputEntrada').value;
   const salida = document.getElementById('inputSalida').value;
-  const pos = normalizeSegment(state.editingPos);
+  const mappedPos = normalizePosition(state.editingPos);
+  const pos = mappedPos.code;
+  const segment = mappedPos.segment;
 
   if (!state.data[state.currentDate]) state.data[state.currentDate] = [];
 
   if (state.editingId) {
     const idx = state.data[state.currentDate].findIndex(x => x.id === state.editingId);
-    if (idx >= 0) state.data[state.currentDate][idx] = { ...state.data[state.currentDate][idx], name, entrada, salida, pos, segment: pos };
+    if (idx >= 0) state.data[state.currentDate][idx] = { ...state.data[state.currentDate][idx], name, entrada, salida, pos, segment };
   } else {
-    state.data[state.currentDate].push({ id: Date.now(), name, entrada, salida, pos, segment: pos });
+    state.data[state.currentDate].push({ id: Date.now(), name, entrada, salida, pos, segment });
   }
 
   saveState();
@@ -1222,14 +1567,19 @@ function fileToBase64(file) {
 function renderAll() {
   renderDays('dayScroll');
   renderDays('dayScroll2');
+  renderDays('dayScroll3');
   renderTopbar();
   renderMyShift();
   renderCrewList();
+  renderMap();
 }
 
 // INIT
 loadState();
 renderAll();
+document.addEventListener('input', event => {
+  if (event.target && event.target.id === 'inputName') resizeNameField();
+});
 initCloud();
 
 // Service Worker registration
