@@ -532,6 +532,8 @@ const POSITION_MAP = {
   'EAU': { label: 'Expedidor AutoMac', segment: 'AUTOMC' },
   'COR': { label: 'Corredor AutoMac', segment: 'AUTOMC' },
   'VAM': { label: 'Verificador AutoMac', segment: 'AUTOMC' },
+  'AAU': { label: 'AutoMac', segment: 'AUTOMC' },
+  'COA': { label: 'AutoMac', segment: 'AUTOMC' },
 
   // COCINA
   'INC': { label: 'Iniciador Cocina', segment: 'COCINA' },
@@ -610,6 +612,8 @@ function normalizePosition(value) {
   if (upper.includes('PRESENTADOR') && upper.includes('AUTO')) return { code: 'PAU', ...POSITION_MAP.PAU };
   if (upper.includes('EXPEDIDOR') && upper.includes('AUTO')) return { code: 'EAU', ...POSITION_MAP.EAU };
   if (upper.includes('CORREDOR') && upper.includes('AUTO')) return { code: 'COR', ...POSITION_MAP.COR };
+  if (upper === 'AAU') return { code: 'AAU', ...POSITION_MAP.AAU };
+  if (upper === 'COA') return { code: 'COA', ...POSITION_MAP.COA };
   if (upper.includes('VERIFICADOR')) return { code: 'VAM', ...POSITION_MAP.VAM };
 
   if (upper.includes('INICIADOR') || upper === 'INC') return { code: 'INC', ...POSITION_MAP.INC };
@@ -1016,6 +1020,8 @@ const MAP_POSITION_COORDS = {
   PAU:  { x: 25.0, y: 6.0,  cols: 1 },
   EAU:  { x: 25.0, y: 13.0, cols: 1 },
   VAM:  { x: 15.5, y: 13.0, cols: 1 },
+  AAU:  { x: 24.0, y: 13.0, cols: 1 },
+  COA:  { x: 24.0, y: 17.0, cols: 1 },
 
   BOD:  { x: 49.0, y: 6.0,  cols: 1 },
   DES:  { x: 57.0, y: 12.0, cols: 1 },
@@ -1342,10 +1348,10 @@ Reglas:
 - Horarios en formato 24 horas.
 - Si un horario aparece como 7, convertirlo a "07:00".
 - Si aparece 7:30, convertirlo a "07:30".
-- En "pos" devolvé ÚNICAMENTE el CÓDIGO corto que aparece dentro de la barra del turno. Ejemplos válidos: BOD, VEN, DES, INC, TAU, LOB, PDL, PRR, CDL, LEC, CUM, CAU, PPS, ENS, ESA, PAP, EALM, MTM, VDL, PAU, EAU, COR, VAM.
+- En "pos" devolvé ÚNICAMENTE el CÓDIGO corto que aparece dentro de la barra del turno. Ejemplos válidos: BOD, VEN, DES, INC, TAU, LOB, PDL, PRR, CDL, LEC, CUM, CAU, PPS, ENS, ESA, PAP, EALM, MTM, VDL, PAU, EAU, COR, VAM, AAU, COA.
 - No devuelvas segmentos como SERVICIO, COCINA, DELIVERY, AUTOMC, LOBBY, MARKETING o DESCARGA. La app clasifica cada código automáticamente.
 - Leé el código de la barra de color, no el color de la barra.
-- Mapeo de referencia: BOD y DES = descarga; LOB = lobby; CUM y LEC = marketing; VEN/MOS/PAP/EALM/PPS = servicio; MTM = mantenimiento; INC/ENS/ESA/PRR/COCI = cocina; CDL/PDL/VDL = delivery; TAU/CAU/PAU/EAU/COR/VAM = AutoMac.
+- Mapeo de referencia: BOD y DES = descarga; LOB = lobby; CUM y LEC = marketing; VEN/MOS/PAP/EALM/PPS = servicio; MTM = mantenimiento; INC/ENS/ESA/PRR/COCI = cocina; CDL/PDL/VDL = delivery; TAU/CAU/PAU/EAU/COR/VAM/AAU/COA = AutoMac.
 - Si el código no se ve bien, usá "VEN".
 - Si hay nombres repetidos con turnos distintos, incluí ambos.
 - Si un dato no se ve bien, intentá inferirlo solo si es muy claro.`
