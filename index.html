@@ -293,6 +293,51 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .pos-sector-tab.active{background:var(--yellow);border-color:var(--yellow);color:#111;font-weight:700;}
 .pos-grid { grid-template-columns: repeat(2, 1fr); }
 
+
+/* FIX SECTOR ACCORDION LAYOUT */
+@media (min-width: 900px) {
+  .crew-list {
+    display: flex !important;
+    flex-direction: column !important;
+    max-width: 980px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .segment-block {
+    width: 100%;
+  }
+}
+.segment-title-row {
+  cursor: pointer;
+  background: rgba(255,255,255,0.02);
+  border: 0.5px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px !important;
+}
+.segment-title-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.segment-toggle-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--surface2);
+  color: var(--yellow);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+}
+.segment-block.collapsed .crew-card {
+  display: none;
+}
+.segment-block.collapsed {
+  margin-bottom: 8px;
+}
+
 </style>
 </head>
 <body>
@@ -627,7 +672,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 
 <script>
-const SECTOR_ORDER = ['TODOS','DELIVERY','AUTOMAC','COCINA','SERVICIO','PAPAS','TORRE','LOBBY','LEC','MANTENIMIENTO','DESCARGA'];
+const SECTOR_ORDER = ['TODOS','AUTOMAC','COCINA','SERVICIO','LOBBY','LEC','MANTENIMIENTO','DESCARGA','PAPAS','TORRE','DELIVERY'];
 const SEGMENTS = SECTOR_ORDER.filter(s => s !== 'TODOS');
 
 const POSITION_MAP = {
@@ -649,7 +694,7 @@ const POSITION_MAP = {
   'PAP': { label: 'Papero', sector: 'PAPAS', segment: 'PAPAS' },
 
   // TORRE
-  'BDA': { label: 'Bebidas de todo', sector: 'TORRE', segment: 'TORRE' },
+  'BDA': { label: 'Bebidas', sector: 'TORRE', segment: 'TORRE' },
 
   // AUTOMAC
   'CAU': { label: 'Caja de auto', sector: 'AUTOMAC', segment: 'AUTOMAC' },
@@ -1262,6 +1307,7 @@ let state = {
   myShift: { start: '09:00', end: '18:00' },
   filterOn: false,
   activeSector: 'TODOS',
+  collapsedSectors: [],
   activePosSector: 'COCINA',
   mapRangeId: 'auto',
   customMapRange: { start: '06:00', end: '11:00' },
@@ -1363,8 +1409,9 @@ function minToTime(m) {
 }
 
 function calcHrs(e, s) {
-  const diff = timeToMin(s) - timeToMin(e);
-  return diff > 0 ? diff / 60 : 0;
+  let diff = timeToMin(s) - timeToMin(e);
+  if (diff < 0) diff += 1440;
+  return diff >= 0 ? diff / 60 : 0;
 }
 
 function initials(name) {
@@ -1396,6 +1443,7 @@ function loadState() {
       state.employees = parsed.employees || [];
       state.myShift = parsed.myShift || state.myShift;
       state.activeSector = parsed.activeSector || state.activeSector;
+      state.collapsedSectors = parsed.collapsedSectors || state.collapsedSectors || [];
       state.mapRangeId = parsed.mapRangeId || state.mapRangeId;
       state.customMapRange = parsed.customMapRange || state.customMapRange;
     }
@@ -1408,6 +1456,7 @@ function saveState() {
     employees: state.employees,
     myShift: state.myShift,
     activeSector: state.activeSector,
+    collapsedSectors: state.collapsedSectors,
     mapRangeId: state.mapRangeId,
     customMapRange: state.customMapRange,
     updatedAtLocal: new Date().toISOString()
@@ -1456,6 +1505,7 @@ async function loadCloudState() {
         data: state.data,
         myShift: state.myShift,
     activeSector: state.activeSector,
+    collapsedSectors: state.collapsedSectors,
     mapRangeId: state.mapRangeId,
     customMapRange: state.customMapRange,
         updatedAtLocal: new Date().toISOString()
@@ -1488,6 +1538,7 @@ async function saveCloudState() {
       employees: state.employees,
       myShift: state.myShift,
     activeSector: state.activeSector,
+    collapsedSectors: state.collapsedSectors,
     mapRangeId: state.mapRangeId,
     customMapRange: state.customMapRange,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1639,6 +1690,22 @@ function renderSectorTabs() {
 
 
 // RENDER CREW LIST
+
+function isSectorCollapsed(sector) {
+  return (state.collapsedSectors || []).includes(sector);
+}
+
+function toggleSectorCollapsed(sector) {
+  if (!Array.isArray(state.collapsedSectors)) state.collapsedSectors = [];
+  if (state.collapsedSectors.includes(sector)) {
+    state.collapsedSectors = state.collapsedSectors.filter(s => s !== sector);
+  } else {
+    state.collapsedSectors.push(sector);
+  }
+  saveState();
+  renderCrewList();
+}
+
 function renderCrewList() {
   let crew = getCrewForCurrentView();
 
@@ -1672,10 +1739,14 @@ function renderCrewList() {
     if (sectorCrew.length === 0) return;
 
     const block = document.createElement('div');
-    block.className = 'segment-block';
+    const collapsed = isSectorCollapsed(sector);
+    block.className = 'segment-block' + (collapsed ? ' collapsed' : '');
     block.innerHTML = `
-      <div class="segment-title-row">
-        <span class="segment-title">${sector}</span>
+      <div class="segment-title-row" onclick="toggleSectorCollapsed('${sector}')">
+        <div class="segment-title-left">
+          <span class="segment-toggle-icon">${collapsed ? '+' : '−'}</span>
+          <span class="segment-title">${sector}</span>
+        </div>
         <span class="segment-count">${sectorCrew.length} persona${sectorCrew.length !== 1 ? 's' : ''}</span>
       </div>
     `;
