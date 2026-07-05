@@ -2908,16 +2908,17 @@ function escapeHtml(value) {
 }
 
 function applyImport(crewArr, mode = 'append') {
+  const editDate = state.currentDate;
   const incoming = normalizeCrewList(crewArr);
 
   if (mode === 'replace') {
-    state.data[state.currentDate] = [];
+    state.data[editDate] = [];
   }
 
-  if (!state.data[state.currentDate]) state.data[state.currentDate] = [];
+  if (!state.data[editDate]) state.data[editDate] = [];
 
   const existingKeys = new Set(
-    state.data[state.currentDate].map(item => {
+    state.data[editDate].map(item => {
       const c = normalizeCrew(item);
       return [
         c.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim(),
@@ -2954,7 +2955,7 @@ function applyImport(crewArr, mode = 'append') {
 
   saveState();
   const actionText = mode === 'replace' ? 'reemplazados' : 'agregados';
-  document.getElementById('importPreview').innerHTML = `<div style="padding:16px;text-align:center;color:#34a853;font-size:15px;font-weight:600">✓ ${added} turnos ${actionText} correctamente</div>`;
+  document.getElementById('importPreview').innerHTML = `<div style="padding:16px;text-align:center;color:#34a853;font-size:15px;font-weight:600">✓ ${added} turnos ${actionText} correctamente en ${(MANAGERS[state.activeManager]?.label || state.activeManager)}</div>`;
   switchPage('turnos', document.querySelector('.nav-btn'));
   renderAll();
 }
