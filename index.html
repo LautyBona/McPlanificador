@@ -1602,8 +1602,100 @@ function findEmployeeProfile(name) {
   const key = normalizeTextKey(name);
   return (state.employees || []).find(e => normalizeTextKey(e.name) === key) || null;
 }
+
+function nameTokens(value) {
+  return normalizeTextKey(value)
+    .replace(/\.+/g, ' ')
+    .split(' ')
+    .map(t => t.trim())
+    .filter(t => t.length >= 2);
+}
+
+function tokenLooksLike(token, candidateToken) {
+  if (!token || !candidateToken) return false;
+  return candidateToken.startsWith(token) || token.startsWith(candidateToken) || candidateToken.includes(token);
+}
+
+function employeeMatchScore(rawName, employeeName) {
+  const qTokens = nameTokens(rawName);
+  const eTokens = nameTokens(employeeName);
+
+  if (qTokens.length === 0 || eTokens.length === 0) return 0;
+
+  let score = 0;
+  qTokens.forEach(q => {
+    let best = 0;
+    eTokens.forEach(e => {
+      if (q === e) best = Math.max(best, 4);
+      else if (e.startsWith(q) || q.startsWith(e)) best = Math.max(best, 3);
+      else if (e.includes(q) || q.includes(e)) best = Math.max(best, 2);
+    });
+    score += best;
+  });
+
+  // Bonus si coincide el primer nombre.
+  if (qTokens[0] && eTokens[0] && tokenLooksLike(qTokens[0], eTokens[0])) score += 3;
+
+  // Bonus si algún token posterior coincide con un apellido.
+  const qLastTokens = qTokens.slice(1);
+  const eLastTokens = eTokens.slice(1);
+  if (qLastTokens.some(q => eLastTokens.some(e => tokenLooksLike(q, e)))) score += 3;
+
+  return score;
+}
+
+function findEmployeeProfileFuzzy(name) {
+  const exact = findEmployeeProfile(name);
+  if (exact) return exact;
+
+  const clean = normalizeTextKey(name);
+  if (!clean) return null;
+
+  const employees = state.employees || [];
+  let best = null;
+  let bestScore = 0;
+
+  employees.forEach(emp => {
+    const score = employeeMatchScore(clean, emp.name);
+    if (score > bestScore) {
+      best = emp;
+      bestScore = score;
+    }
+  });
+
+  // Umbral: permite casos como "Luciana Gola" -> "Luciana Mailen Golato",
+  // pero evita asignar a cualquiera con una sola letra.
+  return bestScore >= 7 ? best : null;
+}
+
+function employeeSkillSectors(profile) {
+  if (!profile || !profile.skills) return [];
+  return profile.skills.map(normalizeSkill).map(skill => {
+    if (skill === 'AUTO') return 'AUTOMAC';
+    if (skill === 'DLV') return 'DELIVERY';
+    if (skill === 'PAPAS') return 'PAPAS';
+    if (skill === 'LEC') return 'LEC';
+    if (skill === 'MTM') return 'MANTENIMIENTO';
+    return skill;
+  });
+}
+
+function positionAllowedForEmployee(profile, mappedPosition) {
+  if (!profile || !mappedPosition) return true;
+  const allowed = employeeSkillSectors(profile);
+  if (allowed.length === 0) return true;
+
+  const sector = mappedPosition.sector || mappedPosition.segment;
+  return allowed.includes(sector);
+}
+
+function normalizeImportedNameWithProfile(rawName) {
+  const profile = findEmployeeProfileFuzzy(rawName);
+  return profile ? profile.name : String(rawName || '').trim();
+}
+
 function inferPositionFromEmployeeName(name) {
-  const profile = findEmployeeProfile(name);
+  const profile = findEmployeeProfileFuzzy(name);
   if (!profile || !profile.skills || profile.skills.length === 0) return null;
   return defaultPositionForSkill(profile.skills[0]);
 }
@@ -2825,7 +2917,10 @@ function parseGeminiJsonArray(text) {
 }
 
 function normalizeCrew(c) {
-  const name = String(c.name || c.nombre || '').trim();
+  const rawName = String(c.name || c.nombre || '').trim();
+  const profile = findEmployeeProfileFuzzy(rawName);
+  const name = profile ? profile.name : rawName;
+
   const rawPos = c.pos || c.position || c.puesto || c.area || c.segment || c.segmento;
   let positionInput = rawPos;
 
@@ -2834,7 +2929,13 @@ function normalizeCrew(c) {
     if (inferred) positionInput = inferred;
   }
 
-  const mapped = normalizePosition(positionInput || 'VEN');
+  let mapped = normalizePosition(positionInput || 'VEN');
+
+  // Si Gemini detectó una posición que no coincide con la aptitud del empleado,
+  // usamos la aptitud principal de la base de empleados.
+  if (profile && !positionAllowedForEmployee(profile, mapped)) {
+    mapped = normalizePosition(defaultPositionForSkill(profile.skills[0]));
+  }
 
   return {
     name,
@@ -2842,6 +2943,7 @@ function normalizeCrew(c) {
     salida: normalizeTime(c.salida || c.fin || c.end),
     pos: mapped.code,
     posLabel: mapped.label,
+    sector: mapped.sector,
     segment: mapped.segment
   };
 }
@@ -2947,6 +3049,7 @@ function applyImport(crewArr, mode = 'append') {
       salida: c.salida,
       pos: c.pos,
       posLabel: c.posLabel,
+      sector: c.sector,
       segment: c.segment
     });
     existingKeys.add(key);
