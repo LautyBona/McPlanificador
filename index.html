@@ -216,6 +216,83 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   .store-map { transform-origin: top left; }
 }
 
+
+/* EMPLOYEES PAGE */
+.employee-section { padding: 16px; }
+.employee-form { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 14px; }
+.employee-list { display: flex; flex-direction: column; gap: 8px; }
+.employee-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 12px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.employee-name { font-size: 14px; font-weight: 600; }
+.employee-skills { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.employee-actions { display:flex; gap:6px; flex-shrink:0; }
+.employee-mini-btn { background: var(--surface3); border: 0.5px solid var(--border2); color: var(--text2); border-radius: 7px; padding: 6px 8px; font-size: 11px; cursor:pointer; }
+@media (min-width: 900px) {
+  .app { max-width: none; width: 100%; }
+  .page { max-width: 1280px; width: 100%; margin: 0 auto; }
+  .bottom-nav { max-width: 760px; margin: 0 auto; width: 100%; border-radius: 16px 16px 0 0; }
+}
+
+
+/* RESPONSIVE FULL PAGE + SECTOR TABS */
+@media (min-width: 900px) {
+  .app { max-width: none !important; width: 100% !important; min-height: 100vh; }
+  .topbar { padding-left: max(16px, calc((100vw - 1320px)/2)); padding-right: max(16px, calc((100vw - 1320px)/2)); }
+  .page { max-width: 1320px; width: 100%; margin: 0 auto; }
+  .bottom-nav { position: fixed; left: 50%; transform: translateX(-50%); width: min(780px, calc(100vw - 32px)); border: 0.5px solid var(--border); border-bottom: none; border-radius: 16px 16px 0 0; }
+  .fab { right: max(24px, calc((100vw - 1320px)/2 + 24px)); }
+  .crew-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); align-items: start; }
+  .segment-block { min-width: 0; }
+  .timeline-section { max-width: 1120px; margin: 0 auto; }
+  .import-section, .employee-section { max-width: 920px; margin: 0 auto; }
+}
+.sector-tabs, .range-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 16px 12px;
+  scrollbar-width: none;
+}
+.sector-tabs::-webkit-scrollbar, .range-tabs::-webkit-scrollbar { display: none; }
+.sector-tab, .range-tab {
+  flex-shrink: 0;
+  border: 0.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sector-tab.active, .range-tab.active {
+  background: var(--yellow);
+  color: #111;
+  border-color: var(--yellow);
+}
+.custom-range-row {
+  display: none;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 0 16px 12px;
+}
+.custom-range-row.show { display: grid; }
+.map-scroll { max-width: calc(100vw - 24px); }
+@media (min-width: 900px) {
+  .map-scroll { max-width: 1320px; margin-left: auto; margin-right: auto; }
+  .store-map { width: 1280px !important; height: 760px !important; margin: 0 auto; }
+}
+@media (max-width: 600px) {
+  .store-map { width: 1050px; height: 720px; }
+  .sector-tabs, .range-tabs { padding-left: 12px; padding-right: 12px; }
+  .nav-btn { font-size: 9px; }
+}
+.modal { max-height: 92vh; overflow-y: auto; }
+.pos-sector-tabs { display:flex; gap:6px; overflow-x:auto; padding-bottom:8px; scrollbar-width:none; }
+.pos-sector-tabs::-webkit-scrollbar{display:none;}
+.pos-sector-tab{flex-shrink:0;background:var(--surface2);border:0.5px solid var(--border);border-radius:999px;padding:7px 10px;font-size:11px;color:var(--text2);cursor:pointer;}
+.pos-sector-tab.active{background:var(--yellow);border-color:var(--yellow);color:#111;font-weight:700;}
+.pos-grid { grid-template-columns: repeat(2, 1fr); }
+
 </style>
 </head>
 <body>
@@ -262,6 +339,8 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
       </div>
     </div>
 
+    <div class="sector-tabs" id="sectorTabs"></div>
+
     <!-- Stats -->
     <div class="stats-grid">
       <div class="stat-card"><div class="stat-val" id="statTotal">0</div><div class="stat-label">Crew activos</div></div>
@@ -291,12 +370,17 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     <div class="day-scroll" id="dayScroll3"></div>
 
     <div class="map-toolbar">
-      <div class="filter-row" style="padding:0">
+      <div class="filter-row" style="padding:0 0 10px">
         <span class="filter-label">Solo mi turno</span>
         <div class="toggle" id="filterToggleMap" onclick="toggleFilter()">
           <div class="toggle-thumb"></div>
         </div>
       </div>
+    </div>
+    <div class="range-tabs" id="mapRangeTabs"></div>
+    <div class="custom-range-row" id="customRangeRow">
+      <input type="time" class="form-input" id="customRangeStart" value="06:00" onchange="saveCustomMapRange()">
+      <input type="time" class="form-input" id="customRangeEnd" value="11:00" onchange="saveCustomMapRange()">
     </div>
 
     <div class="map-scroll">
@@ -340,7 +424,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
         </div>
 
         <div class="map-zone" style="left:1.5%;top:69%;width:13%;height:13%;">
-          <div class="map-zone-title">Corredor / Presentador AutoMac</div>
+          <div class="map-zone-title">Corredor / Presentador</div>
           <div class="map-equipment" style="left:15%;bottom:9%;width:78px;height:30px;"></div>
         </div>
 
@@ -353,9 +437,9 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
         <div class="map-zone" style="left:17%;top:22%;width:27%;height:50%;">
           <div class="map-zone-title">Cocina</div>
           <div class="map-subzone" style="left:5%;top:13%;width:42%;height:18%;"><span>INC</span></div>
-          <div class="map-subzone" style="left:53%;top:13%;width:42%;height:18%;"><span>COND</span></div>
+          <div class="map-subzone" style="left:53%;top:13%;width:42%;height:18%;"><span>CON</span></div>
           <div class="map-subzone" style="left:5%;top:35%;width:42%;height:18%;"><span>ENS</span></div>
-          <div class="map-subzone" style="left:53%;top:35%;width:42%;height:18%;"><span>COCI</span></div>
+          <div class="map-subzone" style="left:53%;top:35%;width:42%;height:18%;"><span>KTS</span></div>
           <div class="map-equipment dark" style="left:18%;top:59%;width:64%;height:58px;"></div>
         </div>
 
@@ -367,7 +451,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 
         <!-- TORRE -->
         <div class="map-zone" style="left:17%;top:84%;width:27%;height:14%;">
-          <div class="map-zone-title">Torre Servicio</div>
+          <div class="map-zone-title">Torre</div>
           <div class="map-equipment" style="left:38%;bottom:10%;width:70px;height:58px;"></div>
         </div>
 
@@ -382,7 +466,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 
         <!-- EALM -->
         <div class="map-zone" style="left:49%;top:54%;width:20%;height:27%;">
-          <div class="map-zone-title">Presentador / EALM Servicio</div>
+          <div class="map-zone-title">Presentador / EALM</div>
           <div class="map-equipment dark" style="left:12%;bottom:10%;width:76%;height:54px;"></div>
         </div>
 
@@ -440,6 +524,27 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     </div>
   </div>
 
+
+  <!-- EMPLOYEES PAGE -->
+  <div class="page" id="page-employees">
+    <div class="employee-section">
+      <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;margin-bottom:6px">Base de empleados</h2>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Estos empleados se usan para sugerir sector/puesto cuando Gemini no detecta bien la posición.</p>
+      <div class="employee-form">
+        <div class="form-group">
+          <label class="form-label">NOMBRE COMPLETO</label>
+          <input class="form-input" id="employeeName" placeholder="Ej: Luciana Mailen Golato">
+        </div>
+        <div class="form-group">
+          <label class="form-label">APTITUDES / SECTORES</label>
+          <input class="form-input" id="employeeSkills" placeholder="Ej: COCINA, SERVICIO, LOBBY">
+        </div>
+        <button class="btn-primary" onclick="saveEmployeeProfile()">Guardar empleado</button>
+      </div>
+      <div class="employee-list" id="employeeList"></div>
+    </div>
+  </div>
+
   <!-- BOTTOM NAV -->
   <div class="bottom-nav">
     <button class="nav-btn active" onclick="switchPage('turnos',this)">
@@ -454,6 +559,11 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     <button class="nav-btn" onclick="switchPage('map',this)">
       <svg viewBox="0 0 24 24"><path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3z"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
       Mapa
+    </button>
+
+    <button class="nav-btn" onclick="switchPage('employees',this)">
+      <svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M17 11a3 3 0 1 0 0-6"/><path d="M3 21v-2a6 6 0 0 1 12 0v2"/><path d="M17 14a5 5 0 0 1 4 5v2"/></svg>
+      Empleados
     </button>
     <button class="nav-btn" onclick="switchPage('import',this)">
       <svg viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
@@ -517,62 +627,555 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 
 <script>
-const SEGMENTS = ['DELIVERY','AUTOMC','COCINA','SERVICIO','LOBBY','MARKETING','MANTENIMIENTO','DESCARGA'];
+const SECTOR_ORDER = ['TODOS','DELIVERY','AUTOMAC','COCINA','SERVICIO','PAPAS','TORRE','LOBBY','LEC','MANTENIMIENTO','DESCARGA'];
+const SEGMENTS = SECTOR_ORDER.filter(s => s !== 'TODOS');
 
 const POSITION_MAP = {
-  // DELIVERY
-  'CDL': { label: 'Coordinador DLV', segment: 'DELIVERY' },
-  'PDL': { label: 'Presentador DLV', segment: 'DELIVERY' },
-  'VDL': { label: 'Verificador DLV', segment: 'DELIVERY' },
-
-  // AUTOMC
-  'TAU': { label: 'Tomador AutoMac', segment: 'AUTOMC' },
-  'CAU': { label: 'Cajero AutoMac', segment: 'AUTOMC' },
-  'PAU': { label: 'Presentador AutoMac', segment: 'AUTOMC' },
-  'EAU': { label: 'Expedidor AutoMac', segment: 'AUTOMC' },
-  'COR': { label: 'Corredor AutoMac', segment: 'AUTOMC' },
-  'VAM': { label: 'Verificador AutoMac', segment: 'AUTOMC' },
-  'AAU': { label: 'AutoMac', segment: 'AUTOMC' },
-  'COA': { label: 'AutoMac', segment: 'AUTOMC' },
-
   // COCINA
-  'INC': { label: 'Iniciador Cocina', segment: 'COCINA' },
-  'ENS': { label: 'Ensamblador', segment: 'COCINA' },
-  'ESA': { label: 'Ensamblador', segment: 'COCINA' },
-  'PRR': { label: 'Parrilla', segment: 'COCINA' },
-  'PPS': { label: 'Papas', segment: 'SERVICIO' },
-  'COCI': { label: 'Cocina', segment: 'COCINA' },
+  'PRR': { label: 'Parrilla', sector: 'COCINA', segment: 'COCINA' },
+  'INC': { label: 'Iniciando', sector: 'COCINA', segment: 'COCINA' },
+  'ENS': { label: 'Ensamblando', sector: 'COCINA', segment: 'COCINA' },
+  'PFR': { label: 'Fritos', sector: 'COCINA', segment: 'COCINA' },
+  'KTS': { label: 'Kitchen Support', sector: 'COCINA', segment: 'COCINA' },
+  'CON': { label: 'Condimentador', sector: 'COCINA', segment: 'COCINA' },
 
   // SERVICIO
-  'VEN': { label: 'Caja / Vendedor', segment: 'SERVICIO' },
-  'MOS': { label: 'Mostrador', segment: 'SERVICIO' },
-  'PAP': { label: 'Presentador AutoMac', segment: 'SERVICIO' },
-  'EALM': { label: 'Entrega a la Mesa', segment: 'SERVICIO' },
+  'VEN': { label: 'Cajero', sector: 'SERVICIO', segment: 'SERVICIO' },
+  'EALM': { label: 'Entrega a la mesa', sector: 'SERVICIO', segment: 'SERVICIO' },
+  'CORR': { label: 'Corredor de pedidos', sector: 'SERVICIO', segment: 'SERVICIO' },
+  'PRES': { label: 'Presentador', sector: 'SERVICIO', segment: 'SERVICIO' },
 
-  // LOBBY
-  'LOB': { label: 'Lobby', segment: 'LOBBY' },
+  // PAPAS
+  'PAP': { label: 'Papero', sector: 'PAPAS', segment: 'PAPAS' },
 
-  // MARKETING
-  'CUM': { label: 'Cumpleaños', segment: 'MARKETING' },
-  'LEC': { label: 'LEC', segment: 'MARKETING' },
+  // TORRE
+  'BDA': { label: 'Bebidas de todo', sector: 'TORRE', segment: 'TORRE' },
 
-  // MANTENIMIENTO
-  'MTM': { label: 'Mantenimiento', segment: 'MANTENIMIENTO' },
+  // AUTOMAC
+  'CAU': { label: 'Caja de auto', sector: 'AUTOMAC', segment: 'AUTOMAC' },
+  'TAU': { label: 'Tomador de auto', sector: 'AUTOMAC', segment: 'AUTOMAC' },
+  'COA': { label: 'Corredor de auto', sector: 'AUTOMAC', segment: 'AUTOMAC' },
+  'PAU': { label: 'Presentador de auto', sector: 'AUTOMAC', segment: 'AUTOMAC' },
 
-  // DESCARGA
-  'BOD': { label: 'Bodeguero', segment: 'DESCARGA' },
-  'DES': { label: 'Descarga', segment: 'DESCARGA' }
+  // DELIVERY
+  'CDL': { label: 'Coordinador DLV', sector: 'DELIVERY', segment: 'DELIVERY' },
+  'PDL': { label: 'Presentador DLV', sector: 'DELIVERY', segment: 'DELIVERY' },
+  'VDL': { label: 'Verificador DLV', sector: 'DELIVERY', segment: 'DELIVERY' },
+
+  // LOBBY / OTROS
+  'LOB': { label: 'Lobby', sector: 'LOBBY', segment: 'LOBBY' },
+  'LEC': { label: 'LEC', sector: 'LEC', segment: 'LEC' },
+  'MTM': { label: 'Mantenimiento', sector: 'MANTENIMIENTO', segment: 'MANTENIMIENTO' },
+  'DES': { label: 'Descarga', sector: 'DESCARGA', segment: 'DESCARGA' }
 };
+
+const POSITION_ALIASES = {
+  COCINA: 'INC',
+  COCI: 'INC',
+  ESA: 'ENS',
+  COND: 'CON',
+  PPS: 'PAP',
+  PAPA: 'PAP',
+  PAPAS: 'PAP',
+  PDLV: 'PDL',
+  VENDEDOR: 'VEN',
+  CAJA: 'VEN',
+  AAU: 'COA',
+  COR: 'COA',
+  VAM: 'COA',
+  EAU: 'PAU',
+  AUTOMC: 'TAU',
+  AUTO: 'TAU',
+  DLV: 'PDL',
+  DELIVERY: 'PDL',
+  BOD: 'DES',
+  DESCARGA: 'DES',
+  MARKETING: 'LEC'
+};
+
+const DEFAULT_EMPLOYEES = [
+  {
+    "name": "Pamela Mariana Gisele Arrua",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Lucas Alejandro Perez",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Candela Rocio Gonzalez",
+    "skills": [
+      "LEC"
+    ]
+  },
+  {
+    "name": "Priscila Abril Murillo",
+    "skills": [
+      "AUTO"
+    ]
+  },
+  {
+    "name": "Julieta Macarena Herrera",
+    "skills": [
+      "AUTO"
+    ]
+  },
+  {
+    "name": "Facundo Ezequiel Mendez",
+    "skills": [
+      "AUTO"
+    ]
+  },
+  {
+    "name": "Cristian Fidel Duarte",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Tomas Ignacio Gonzalez",
+    "skills": [
+      "AUTO"
+    ]
+  },
+  {
+    "name": "Mariana Kosur",
+    "skills": [
+      "LEC"
+    ]
+  },
+  {
+    "name": "Ezequiel Martin",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Milagros Aylen Naon",
+    "skills": [
+      "AUTO",
+      "SERVICIO",
+      "LOBBY"
+    ]
+  },
+  {
+    "name": "Guadalupe Luna Izaguirre",
+    "skills": [
+      "AUTO",
+      "SERVICIO",
+      "LOBBY"
+    ]
+  },
+  {
+    "name": "Romina Milagros Guerra",
+    "skills": [
+      "AUTO",
+      "SERVICIO",
+      "LOBBY"
+    ]
+  },
+  {
+    "name": "Lourdes Amelie Peloso Urquilla",
+    "skills": [
+      "DLV"
+    ]
+  },
+  {
+    "name": "Ruben Karim Marcos Minagro",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Iara Luna Cores",
+    "skills": [
+      "DLV"
+    ]
+  },
+  {
+    "name": "Giuliana Valentina Verta",
+    "skills": [
+      "SERVICIO",
+      "AUTO"
+    ]
+  },
+  {
+    "name": "Melody Milagros Molina",
+    "skills": [
+      "AUTO",
+      "SERVICIO",
+      "LOBBY"
+    ]
+  },
+  {
+    "name": "Cinthia Elizabeth Figueredo Duarte",
+    "skills": [
+      "AUTO"
+    ]
+  },
+  {
+    "name": "Luca Gabriel Barrios",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Brian Daniel Bek",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Mailen Morena Suarez",
+    "skills": [
+      "SERVICIO",
+      "LOBBY"
+    ]
+  },
+  {
+    "name": "Yazmin Dobrilla",
+    "skills": [
+      "SERVICIO",
+      "AUTO",
+      "LOBBY"
+    ]
+  },
+  {
+    "name": "Ezequiel Ferreyra",
+    "skills": [
+      "PAPAS",
+      "SERVICIO",
+      "LOBBY"
+    ]
+  },
+  {
+    "name": "Marina Elizabeth Told",
+    "skills": [
+      "AUTO"
+    ]
+  },
+  {
+    "name": "Priscila Jazmin Almada",
+    "skills": [
+      "LOBBY",
+      "SERVICIO"
+    ]
+  },
+  {
+    "name": "Lautaro Joaquin Rodriguez",
+    "skills": [
+      "LOBBY",
+      "SERVICIO",
+      "AUTO"
+    ]
+  },
+  {
+    "name": "Marcos Ferreyra",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Camila Victoria Gayoso",
+    "skills": [
+      "AUTO"
+    ]
+  },
+  {
+    "name": "Brisa Molinari",
+    "skills": [
+      "LOBBY",
+      "SERVICIO"
+    ]
+  },
+  {
+    "name": "Regina Prosperi",
+    "skills": [
+      "SERVICIO",
+      "AUTO",
+      "LOBBY"
+    ]
+  },
+  {
+    "name": "Thiago Kalen Galarza",
+    "skills": [
+      "AUTO",
+      "SERVICIO"
+    ]
+  },
+  {
+    "name": "Franco Leonardo Barrios Pereyra",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Giuliana Ailen Jaurena",
+    "skills": [
+      "SERVICIO",
+      "AUTO"
+    ]
+  },
+  {
+    "name": "Mariano Sebastian Bax",
+    "skills": [
+      "DLV",
+      "SERVICIO",
+      "AUTO",
+      "LOBBY"
+    ]
+  },
+  {
+    "name": "Valentina Cecilia Lancuba",
+    "skills": [
+      "DLV"
+    ]
+  },
+  {
+    "name": "Melisa Estigarribia",
+    "skills": [
+      "SERVICIO",
+      "LOBBY"
+    ]
+  },
+  {
+    "name": "Abril Moyano",
+    "skills": [
+      "AUTO"
+    ]
+  },
+  {
+    "name": "Melina Perez",
+    "skills": [
+      "LEC"
+    ]
+  },
+  {
+    "name": "Emiliano Julian Potenza",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Rocio Azul Rivera",
+    "skills": [
+      "DLV",
+      "SERVICIO",
+      "AUTO"
+    ]
+  },
+  {
+    "name": "Angelina Sol Luna",
+    "skills": [
+      "SERVICIO",
+      "AUTO",
+      "LOBBY"
+    ]
+  },
+  {
+    "name": "Luciana Mailen Golato",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Lucas Gabriel Gonzalez",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Maximo Barragan",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Juan Ignacio Ducret",
+    "skills": [
+      "SERVICIO",
+      "AUTO",
+      "LOBBY"
+    ]
+  },
+  {
+    "name": "Tobias Parrado",
+    "skills": [
+      "LOBBY",
+      "SERVICIO"
+    ]
+  },
+  {
+    "name": "Agustina Ceridono",
+    "skills": [
+      "DLV"
+    ]
+  },
+  {
+    "name": "Issa Lucio Fernandez",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Valentina Gallo Vidal",
+    "skills": [
+      "SERVICIO"
+    ]
+  },
+  {
+    "name": "Santiago Maximiliano Flores",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Tatiana Agustina Barraza",
+    "skills": [
+      "LEC"
+    ]
+  },
+  {
+    "name": "Melany Valentina Ramirez",
+    "skills": [
+      "LEC"
+    ]
+  },
+  {
+    "name": "Nayla Camila Villafañe",
+    "skills": [
+      "SERVICIO",
+      "LOBBY",
+      "AUTO"
+    ]
+  },
+  {
+    "name": "Tomas Zara",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Valentina Matias",
+    "skills": [
+      "AUTO"
+    ]
+  },
+  {
+    "name": "Ezequiel Laguna",
+    "skills": [
+      "MTM"
+    ]
+  },
+  {
+    "name": "Nicolas Ariel Godoy",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Luciana Bogado",
+    "skills": [
+      "AUTO"
+    ]
+  },
+  {
+    "name": "Agustina Gimenez",
+    "skills": [
+      "DLV"
+    ]
+  },
+  {
+    "name": "David Quilici Paez",
+    "skills": [
+      "DLV"
+    ]
+  },
+  {
+    "name": "Leonel Jesus Rial",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Ivan Eduardo Piñeyro",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Lara Julieta Martinet",
+    "skills": [
+      "AUTO"
+    ]
+  },
+  {
+    "name": "Tiara Belen Napoli",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Martina Lombardo",
+    "skills": [
+      "LOBBY",
+      "SERVICIO"
+    ]
+  },
+  {
+    "name": "Candela Zalazar",
+    "skills": [
+      "LOBBY",
+      "SERVICIO"
+    ]
+  },
+  {
+    "name": "Luana Yael Gomez",
+    "skills": [
+      "SERVICIO"
+    ]
+  },
+  {
+    "name": "Zoe Jazmin Iglesias",
+    "skills": [
+      "LEC"
+    ]
+  },
+  {
+    "name": "Leonel Nazareno Romero",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Alan Benjamin Galeano",
+    "skills": [
+      "COCINA"
+    ]
+  },
+  {
+    "name": "Irina Cejas Perez",
+    "skills": [
+      "LEC"
+    ]
+  }
+];
 
 const POSITIONS = Object.keys(POSITION_MAP);
 const AV_COLORS = ['c0','c1','c2','c3','c4','c5','c6','c7'];
 const POS_COLORS_MAP = {
-  'DELIVERY':'#ff5722',
-  'AUTOMC':'#FFC72C',
-  'COCINA':'#1a73e8',
-  'SERVICIO':'#DA291C',
-  'LOBBY':'#34a853',
-  'MARKETING':'#9c27b0',
+  'DELIVERY':'#00bcd4',
+  'AUTOMAC':'#0d47a1',
+  'COCINA':'#43a047',
+  'SERVICIO':'#1a73e8',
+  'PAPAS':'#fbc02d',
+  'TORRE':'#fb8c00',
+  'LOBBY':'#ffb300',
+  'LEC':'#d81b60',
   'MANTENIMIENTO':'#9e9e9e',
   'DESCARGA':'#111111'
 };
@@ -591,52 +1194,41 @@ function normalizePosition(value) {
   const upper = raw.toUpperCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
-  const code = cleanPositionCode(raw);
+  let code = cleanPositionCode(raw);
 
+  if (POSITION_ALIASES[code]) code = POSITION_ALIASES[code];
   if (POSITION_MAP[code]) return { code, ...POSITION_MAP[code] };
 
-  // Lecturas frecuentes de la IA o textos largos del Orquest.
-  if (upper.includes('BOD') || upper.includes('BODEGA') || upper.includes('BODEGUERO')) return { code: 'BOD', ...POSITION_MAP.BOD };
-  if (upper.includes('DESCARGA') || upper === 'DES') return { code: 'DES', ...POSITION_MAP.DES };
-  if (upper.includes('LOBBY') || upper === 'LOB') return { code: 'LOB', ...POSITION_MAP.LOB };
-  if (upper.includes('CUMPLE') || upper.includes('MARKETING') || upper === 'CUM') return { code: 'CUM', ...POSITION_MAP.CUM };
-  if (upper.includes('LEC')) return { code: 'LEC', ...POSITION_MAP.LEC };
-  if (upper.includes('MANTENIMIENTO') || upper === 'MTM') return { code: 'MTM', ...POSITION_MAP.MTM };
+  if (upper.includes('PARRILLA')) return { code: 'PRR', ...POSITION_MAP.PRR };
+  if (upper.includes('INICI')) return { code: 'INC', ...POSITION_MAP.INC };
+  if (upper.includes('ENSAMBL')) return { code: 'ENS', ...POSITION_MAP.ENS };
+  if (upper.includes('FRITO')) return { code: 'PFR', ...POSITION_MAP.PFR };
+  if (upper.includes('KITCHEN')) return { code: 'KTS', ...POSITION_MAP.KTS };
+  if (upper.includes('CONDIMENT')) return { code: 'CON', ...POSITION_MAP.CON };
 
-  if (upper.includes('COORDINADOR DLV') || upper === 'CDL') return { code: 'CDL', ...POSITION_MAP.CDL };
-  if (upper.includes('PRESENTADOR DLV') || upper.includes('PRESENTANDO DELIVERY') || upper === 'PDL') return { code: 'PDL', ...POSITION_MAP.PDL };
-  if (upper.includes('VERIFICADOR DLV') || upper === 'VDL') return { code: 'VDL', ...POSITION_MAP.VDL };
+  if (upper.includes('ENTREGA A LA MESA')) return { code: 'EALM', ...POSITION_MAP.EALM };
+  if (upper.includes('CORREDOR') && !upper.includes('AUTO')) return { code: 'CORR', ...POSITION_MAP.CORR };
+  if (upper.includes('PRESENTADOR') && !upper.includes('AUTO') && !upper.includes('DLV')) return { code: 'PRES', ...POSITION_MAP.PRES };
+  if (upper.includes('CAJERO') || upper.includes('VENDEDOR') || upper.includes('CAJA')) return { code: 'VEN', ...POSITION_MAP.VEN };
 
+  if (upper.includes('PAP')) return { code: 'PAP', ...POSITION_MAP.PAP };
+  if (upper.includes('BEBIDA') || upper.includes('TORRE')) return { code: 'BDA', ...POSITION_MAP.BDA };
+
+  if (upper.includes('CAJA') && upper.includes('AUTO')) return { code: 'CAU', ...POSITION_MAP.CAU };
   if (upper.includes('TOMADOR') && upper.includes('AUTO')) return { code: 'TAU', ...POSITION_MAP.TAU };
-  if (upper.includes('CAJERO') && upper.includes('AUTO')) return { code: 'CAU', ...POSITION_MAP.CAU };
+  if (upper.includes('CORREDOR') && upper.includes('AUTO')) return { code: 'COA', ...POSITION_MAP.COA };
   if (upper.includes('PRESENTADOR') && upper.includes('AUTO')) return { code: 'PAU', ...POSITION_MAP.PAU };
-  if (upper.includes('EXPEDIDOR') && upper.includes('AUTO')) return { code: 'EAU', ...POSITION_MAP.EAU };
-  if (upper.includes('CORREDOR') && upper.includes('AUTO')) return { code: 'COR', ...POSITION_MAP.COR };
-  if (upper === 'AAU') return { code: 'AAU', ...POSITION_MAP.AAU };
-  if (upper === 'COA') return { code: 'COA', ...POSITION_MAP.COA };
-  if (upper.includes('VERIFICADOR')) return { code: 'VAM', ...POSITION_MAP.VAM };
 
-  if (upper.includes('INICIADOR') || upper === 'INC') return { code: 'INC', ...POSITION_MAP.INC };
-  if (upper === 'ESA') return { code: 'ESA', ...POSITION_MAP.ESA };
-  if (upper.includes('ENSAMBLADOR') || upper === 'ENS') return { code: 'ENS', ...POSITION_MAP.ENS };
-  if (upper.includes('PARRILLA') || upper === 'PRR') return { code: 'PRR', ...POSITION_MAP.PRR };
-  if (upper.includes('PAPAS') || upper === 'PPS') return { code: 'PPS', ...POSITION_MAP.PPS };
-  if (upper.includes('COCINA') || upper.includes('COCI')) return { code: 'COCI', ...POSITION_MAP.COCI };
+  if (upper.includes('COORDINADOR') && upper.includes('DLV')) return { code: 'CDL', ...POSITION_MAP.CDL };
+  if (upper.includes('PRESENTADOR') && upper.includes('DLV')) return { code: 'PDL', ...POSITION_MAP.PDL };
+  if (upper.includes('VERIFICADOR') && upper.includes('DLV')) return { code: 'VDL', ...POSITION_MAP.VDL };
 
-  if (upper.includes('VENDEDOR') || upper.includes('CAJA') || upper === 'VEN') return { code: 'VEN', ...POSITION_MAP.VEN };
-  if (upper.includes('MOSTRADOR') || upper === 'MOS') return { code: 'MOS', ...POSITION_MAP.MOS };
-  if (upper.includes('ENTREGA A LA MESA') || upper.includes('EALM')) return { code: 'EALM', ...POSITION_MAP.EALM };
-  if (upper === 'PAP' || upper.includes('PRESENTADOR AUTOMAC')) return { code: 'PAP', ...POSITION_MAP.PAP };
+  if (upper.includes('LOBBY')) return { code: 'LOB', ...POSITION_MAP.LOB };
+  if (upper.includes('MANTEN')) return { code: 'MTM', ...POSITION_MAP.MTM };
+  if (upper.includes('DESCARGA') || upper.includes('BODEGA')) return { code: 'DES', ...POSITION_MAP.DES };
+  if (upper.includes('LEC') || upper.includes('MARKETING')) return { code: 'LEC', ...POSITION_MAP.LEC };
 
-  // Si viene un segmento viejo de versiones anteriores, convertimos a una posición base.
-  if (upper.includes('DELIVERY')) return { code: 'PDL', ...POSITION_MAP.PDL };
-  if (upper.includes('AUTOMC') || upper.includes('AUTOMAC') || upper.includes('DRIVE')) return { code: 'TAU', ...POSITION_MAP.TAU };
-  if (upper.includes('SERVICIO')) return { code: 'VEN', ...POSITION_MAP.VEN };
-  if (upper.includes('COCINA')) return { code: 'COCI', ...POSITION_MAP.COCI };
-  if (upper.includes('MANTENIMIENTO')) return { code: 'MTM', ...POSITION_MAP.MTM };
-  if (upper.includes('DESCARGA')) return { code: 'DES', ...POSITION_MAP.DES };
-
-  return { code: code || 'VEN', label: raw || 'Caja / Vendedor', segment: 'SERVICIO' };
+  return { code: code || 'VEN', label: raw || 'Cajero', sector: 'SERVICIO', segment: 'SERVICIO' };
 }
 
 function normalizeSegment(value) {
@@ -655,16 +1247,26 @@ function getCrewPosition(crew) {
 function getCrewSegment(crew) {
   return getCrewPosition(crew).segment;
 }
+
+function getCrewSector(crew) {
+  return getCrewPosition(crew).sector || getCrewPosition(crew).segment;
+}
 const DAYS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const DAYS_FULL = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 const MONTHS_ES = ['enero','feb','marzo','abr','mayo','jun','jul','ago','sep','oct','nov','dic'];
 
 let state = {
   data: {},
+  employees: [],
   currentDate: todayKey(),
   myShift: { start: '09:00', end: '18:00' },
   filterOn: false,
+  activeSector: 'TODOS',
+  activePosSector: 'COCINA',
+  mapRangeId: 'auto',
+  customMapRange: { start: '06:00', end: '11:00' },
   editingId: null,
+  editingDate: null,
   editingPos: 'VEN',
 };
 
@@ -693,6 +1295,48 @@ let db = null;
 let cloudReady = false;
 let cloudLoading = false;
 let saveCloudTimer = null;
+
+
+function normalizeTextKey(value) {
+  return String(value || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ');
+}
+function normalizeSkill(skill) {
+  const s = String(skill || '').trim().toUpperCase();
+  if (['AUTO','AUTOMAC','AUTOMC','DRIVE'].includes(s)) return 'AUTOMAC';
+  if (['DLV','DELIVERY'].includes(s)) return 'DELIVERY';
+  if (['LEC','MARKETING'].includes(s)) return 'LEC';
+  if (['MTM','MANTENIMIENTO'].includes(s)) return 'MANTENIMIENTO';
+  if (['PAPAS','PAP'].includes(s)) return 'PAPAS';
+  return s;
+}
+function defaultPositionForSkill(skill) {
+  const map = { COCINA:'INC', SERVICIO:'VEN', AUTOMAC:'TAU', DELIVERY:'PDL', LOBBY:'LOB', LEC:'LEC', PAPAS:'PAP', TORRE:'BDA', MANTENIMIENTO:'MTM', DESCARGA:'DES' };
+  return map[normalizeSkill(skill)] || 'VEN';
+}
+function mergeDefaultEmployees() {
+  if (!Array.isArray(state.employees)) state.employees = [];
+  const existing = new Set(state.employees.map(e => normalizeTextKey(e.name)));
+  DEFAULT_EMPLOYEES.forEach(emp => {
+    const key = normalizeTextKey(emp.name);
+    if (!existing.has(key)) {
+      state.employees.push({ name: emp.name, skills: (emp.skills || []).map(normalizeSkill), createdFromDefault: true });
+      existing.add(key);
+    }
+  });
+  state.employees.sort((a,b) => a.name.localeCompare(b.name, 'es'));
+}
+function findEmployeeProfile(name) {
+  const key = normalizeTextKey(name);
+  return (state.employees || []).find(e => normalizeTextKey(e.name) === key) || null;
+}
+function inferPositionFromEmployeeName(name) {
+  const profile = findEmployeeProfile(name);
+  if (!profile || !profile.skills || profile.skills.length === 0) return null;
+  return defaultPositionForSkill(profile.skills[0]);
+}
+function hasExplicitKnownPosition(value) {
+  return Boolean(POSITION_MAP[cleanPositionCode(value)]);
+}
 
 function todayKey() {
   return new Date().toISOString().split('T')[0];
@@ -749,7 +1393,11 @@ function loadState() {
     if (saved) {
       const parsed = JSON.parse(saved);
       state.data = parsed.data || {};
+      state.employees = parsed.employees || [];
       state.myShift = parsed.myShift || state.myShift;
+      state.activeSector = parsed.activeSector || state.activeSector;
+      state.mapRangeId = parsed.mapRangeId || state.mapRangeId;
+      state.customMapRange = parsed.customMapRange || state.customMapRange;
     }
   } catch(e) {}
 }
@@ -757,7 +1405,11 @@ function loadState() {
 function saveState() {
   localStorage.setItem('mcplanner_v2', JSON.stringify({
     data: state.data,
+    employees: state.employees,
     myShift: state.myShift,
+    activeSector: state.activeSector,
+    mapRangeId: state.mapRangeId,
+    customMapRange: state.customMapRange,
     updatedAtLocal: new Date().toISOString()
   }));
   saveCloudDebounced();
@@ -797,10 +1449,15 @@ async function loadCloudState() {
     if (snap.exists) {
       const cloud = snap.data() || {};
       state.data = cloud.data || {};
+      state.employees = cloud.employees || [];
+      mergeDefaultEmployees();
       state.myShift = cloud.myShift || state.myShift;
       localStorage.setItem('mcplanner_v2', JSON.stringify({
         data: state.data,
         myShift: state.myShift,
+    activeSector: state.activeSector,
+    mapRangeId: state.mapRangeId,
+    customMapRange: state.customMapRange,
         updatedAtLocal: new Date().toISOString()
       }));
       setCloudStatus('ok', 'Nube conectada: datos sincronizados');
@@ -828,7 +1485,11 @@ async function saveCloudState() {
   try {
     await db.collection('turnosManager').doc(FIREBASE_DOC_ID).set({
       data: state.data,
+      employees: state.employees,
       myShift: state.myShift,
+    activeSector: state.activeSector,
+    mapRangeId: state.mapRangeId,
+    customMapRange: state.customMapRange,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
 
@@ -839,18 +1500,10 @@ async function saveCloudState() {
 }
 
 function inMyShift(crew) {
-  const myStart = timeToMin(state.myShift.start);
-  const myEnd = timeToMin(state.myShift.end);
-  const crewStart = timeToMin(crew.entrada);
-
-  // Filtro "Solo mi turno":
-  // Si mi turno es 09:00 a 17:00, muestra SOLO los que ENTRAN
-  // desde 09:00 hasta 16:00 inclusive.
-  // No importa si alguien de 06:00 a 11:00 se cruza con mi turno:
-  // no aparece porque entró antes de mi horario.
-  const lastVisibleEntry = myEnd - 60;
-
-  return crewStart >= myStart && crewStart <= lastVisibleEntry;
+  const r = rangeForSelectedDate(state.myShift.start, state.myShift.end);
+  const dayOffset = crew.dayOffset || 0;
+  const interval = intervalForTimes(crew.entrada, crew.salida, dayOffset);
+  return interval.start < r.end && interval.end > r.start;
 }
 
 function crewStatus(crew) {
@@ -866,6 +1519,66 @@ function crewStatus(crew) {
   if (crewStart >= myEnd - 120 && crewStart <= myEnd - 60) return 'ending';
   return 'overlap';
 }
+
+
+function timeToAbsoluteMin(time, dayOffset = 0) {
+  return timeToMin(time) + (dayOffset * 1440);
+}
+
+function intervalForTimes(start, end, dayOffset = 0) {
+  const s = timeToAbsoluteMin(start, dayOffset);
+  let e = timeToAbsoluteMin(end, dayOffset);
+  if (e <= s) e += 1440;
+  return { start: s, end: e };
+}
+
+function getCrewRecordsForWindow(rangeStart, rangeEnd) {
+  const today = state.currentDate;
+  const next = addDays(today, 1);
+  const records = [];
+
+  [today, next].forEach((dateKey, idx) => {
+    const dayOffset = idx;
+    const arr = state.data[dateKey] || [];
+    arr.forEach(item => {
+      const c = normalizeCrew(item);
+      if (!c.name || !c.entrada || !c.salida) return;
+      const interval = intervalForTimes(c.entrada, c.salida, dayOffset);
+
+      // Si el turno entra en la ventana o se superpone con la ventana.
+      const overlaps = interval.start < rangeEnd && interval.end > rangeStart;
+      if (overlaps) records.push({ ...item, ...c, sourceDate: dateKey, dayOffset, absStart: interval.start, absEnd: interval.end });
+    });
+  });
+
+  return records;
+}
+
+function rangeForSelectedDate(start, end) {
+  const base = intervalForTimes(start, end, 0);
+  return base;
+}
+
+function getCrewForCurrentView() {
+  const baseStart = 0;
+  const baseEnd = 2880;
+  let crew = getCrewRecordsForWindow(baseStart, baseEnd);
+
+  // Para la lista normal, evitamos duplicar todo el día siguiente salvo que el filtro sea nocturno.
+  if (!state.filterOn) {
+    crew = (state.data[state.currentDate] || []).map(item => ({ ...item, ...normalizeCrew(item), sourceDate: state.currentDate, dayOffset: 0, absStart: timeToMin(normalizeCrew(item).entrada), absEnd: intervalForTimes(normalizeCrew(item).entrada, normalizeCrew(item).salida, 0).end }));
+  } else {
+    const r = rangeForSelectedDate(state.myShift.start, state.myShift.end);
+    crew = getCrewRecordsForWindow(r.start, r.end);
+  }
+
+  if (state.activeSector && state.activeSector !== 'TODOS') {
+    crew = crew.filter(c => getCrewSector(c) === state.activeSector);
+  }
+
+  return crew;
+}
+
 
 // RENDER DAYS
 function renderDays(containerId) {
@@ -905,23 +1618,42 @@ function renderMyShift() {
   document.getElementById('myEnd').value = state.myShift.end;
 }
 
+
+function renderSectorTabs() {
+  const cont = document.getElementById('sectorTabs');
+  if (!cont) return;
+  cont.innerHTML = '';
+  SECTOR_ORDER.forEach(sector => {
+    const btn = document.createElement('button');
+    btn.className = 'sector-tab' + (state.activeSector === sector ? ' active' : '');
+    btn.textContent = sector;
+    btn.onclick = () => {
+      state.activeSector = sector;
+      renderSectorTabs();
+  renderCrewList();
+      renderSectorTabs();
+    };
+    cont.appendChild(btn);
+  });
+}
+
+
 // RENDER CREW LIST
 function renderCrewList() {
-  let crew = getCrew(state.currentDate);
-  if (state.filterOn) crew = crew.filter(inMyShift);
+  let crew = getCrewForCurrentView();
 
   crew = crew
-    .map(c => { const mapped = getCrewPosition(c); return { ...c, pos: mapped.code, posLabel: mapped.label, segment: mapped.segment }; })
+    .map(c => { const mapped = getCrewPosition(c); return { ...c, pos: mapped.code, posLabel: mapped.label, sector: mapped.sector, segment: mapped.segment }; })
     .sort((a,b) => {
-      const segDiff = segmentOrder(a.segment) - segmentOrder(b.segment);
-      if (segDiff !== 0) return segDiff;
-      return timeToMin(a.entrada) - timeToMin(b.entrada);
+      const sectorDiff = SECTOR_ORDER.indexOf(a.sector) - SECTOR_ORDER.indexOf(b.sector);
+      if (sectorDiff !== 0) return sectorDiff;
+      return (a.absStart ?? timeToMin(a.entrada)) - (b.absStart ?? timeToMin(b.entrada));
     });
 
   document.getElementById('statTotal').textContent = crew.length;
   const totalH = crew.reduce((s, c) => s + calcHrs(c.entrada, c.salida), 0);
   document.getElementById('statHoras').textContent = Math.round(totalH) + 'h';
-  const pos = new Set(crew.map(c => getCrewSegment(c)));
+  const pos = new Set(crew.map(c => getCrewSector(c)));
   document.getElementById('statPos').textContent = pos.size;
   document.getElementById('crewCountLabel').textContent = crew.length + ' persona' + (crew.length !== 1 ? 's' : '');
 
@@ -933,37 +1665,40 @@ function renderCrewList() {
     return;
   }
 
-  SEGMENTS.forEach(segment => {
-    const segmentCrew = crew.filter(c => getCrewSegment(c) === segment);
-    if (segmentCrew.length === 0) return;
+  const sectorsToShow = state.activeSector === 'TODOS' ? SECTOR_ORDER.filter(s => s !== 'TODOS') : [state.activeSector];
+
+  sectorsToShow.forEach(sector => {
+    const sectorCrew = crew.filter(c => getCrewSector(c) === sector);
+    if (sectorCrew.length === 0) return;
 
     const block = document.createElement('div');
     block.className = 'segment-block';
     block.innerHTML = `
       <div class="segment-title-row">
-        <span class="segment-title">${segment}</span>
-        <span class="segment-count">${segmentCrew.length} persona${segmentCrew.length !== 1 ? 's' : ''}</span>
+        <span class="segment-title">${sector}</span>
+        <span class="segment-count">${sectorCrew.length} persona${sectorCrew.length !== 1 ? 's' : ''}</span>
       </div>
     `;
 
-    segmentCrew.forEach((c, i) => {
+    sectorCrew.forEach((c, i) => {
       const colorClass = AV_COLORS[i % AV_COLORS.length];
       const hrs = calcHrs(c.entrada, c.salida);
       const status = state.filterOn ? crewStatus(c) : '';
+      const dayLabel = c.dayOffset ? ' · +' + c.dayOffset + ' día' : '';
       const card = document.createElement('div');
       card.className = 'crew-card ' + status;
       card.innerHTML = `
         <div class="crew-avatar ${colorClass}">${initials(c.name)}</div>
         <div class="crew-info">
           <div class="crew-name">${escapeHtml(c.name)}</div>
-          <div class="crew-pos">${escapeHtml(c.pos)} · ${escapeHtml(c.posLabel || segment)} · ${hrs.toFixed(1)}h</div>
+          <div class="crew-pos">${escapeHtml(c.pos)} · ${escapeHtml(c.posLabel || sector)} · ${hrs.toFixed(1)}h${dayLabel}</div>
         </div>
         <div class="crew-times">
           <span>${escapeHtml(c.entrada)}</span>
           <span class="arrow">→</span>
           <span>${escapeHtml(c.salida)}</span>
         </div>
-        <button class="crew-menu-btn" onclick="openCrewModal(${c.id})">
+        <button class="crew-menu-btn" onclick="openCrewModal(${c.id}, '${c.sourceDate || state.currentDate}')">
           <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
         </button>
       `;
@@ -1013,41 +1748,102 @@ function renderTimeline() {
 }
 
 
+
+const MAP_RANGES = [
+  { id: 'auto', label: 'Auto', start: null, end: null },
+  { id: '06-11', label: '06–11', start: '06:00', end: '11:00' },
+  { id: '11-16', label: '11–16', start: '11:00', end: '16:00' },
+  { id: '16-21', label: '16–21', start: '16:00', end: '21:00' },
+  { id: '21-02', label: '21–02', start: '21:00', end: '02:00' },
+  { id: '23-06', label: '23–06', start: '23:00', end: '06:00' },
+  { id: 'custom', label: 'Personalizado', start: null, end: null }
+];
+
+function currentClockMinutes() {
+  const d = new Date();
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+function autoMapRange() {
+  const now = currentClockMinutes();
+  const ranges = MAP_RANGES.filter(r => r.start && r.end);
+  for (const r of ranges) {
+    const interval = rangeForSelectedDate(r.start, r.end);
+    let check = now;
+    if (interval.end > 1440 && check < timeToMin(r.end)) check += 1440;
+    if (check >= interval.start && check < interval.end) return r;
+  }
+  return MAP_RANGES.find(r => r.id === '06-11');
+}
+
+function getActiveMapRange() {
+  if (state.mapRangeId === 'custom') return { id: 'custom', label: 'Personalizado', ...state.customMapRange };
+  if (state.mapRangeId === 'auto') return autoMapRange();
+  return MAP_RANGES.find(r => r.id === state.mapRangeId) || MAP_RANGES[1];
+}
+
+function renderMapRangeTabs() {
+  const cont = document.getElementById('mapRangeTabs');
+  const customRow = document.getElementById('customRangeRow');
+  if (!cont) return;
+  cont.innerHTML = '';
+  MAP_RANGES.forEach(range => {
+    const btn = document.createElement('button');
+    btn.className = 'range-tab' + (state.mapRangeId === range.id ? ' active' : '');
+    btn.textContent = range.label;
+    btn.onclick = () => {
+      state.mapRangeId = range.id;
+      if (customRow) customRow.classList.toggle('show', range.id === 'custom');
+      renderMapRangeTabs();
+      renderMap();
+  renderMapRangeTabs();
+    };
+    cont.appendChild(btn);
+  });
+  if (customRow) customRow.classList.toggle('show', state.mapRangeId === 'custom');
+}
+
+function saveCustomMapRange() {
+  state.customMapRange = {
+    start: document.getElementById('customRangeStart').value || '06:00',
+    end: document.getElementById('customRangeEnd').value || '11:00'
+  };
+  saveState();
+  renderMap();
+}
+
+
 // MAPA DE POSICIONES
 const MAP_POSITION_COORDS = {
   TAU:  { x: 3.0,  y: 6.0,  cols: 1 },
   CAU:  { x: 15.5, y: 6.0,  cols: 1 },
+  COA:  { x: 2.5,  y: 72.0, cols: 1 },
   PAU:  { x: 25.0, y: 6.0,  cols: 1 },
-  EAU:  { x: 25.0, y: 13.0, cols: 1 },
-  VAM:  { x: 15.5, y: 13.0, cols: 1 },
-  AAU:  { x: 24.0, y: 13.0, cols: 1 },
-  COA:  { x: 24.0, y: 17.0, cols: 1 },
 
-  BOD:  { x: 49.0, y: 6.0,  cols: 1 },
-  DES:  { x: 57.0, y: 12.0, cols: 1 },
+  DES:  { x: 49.0, y: 6.0,  cols: 1 },
   MTM:  { x: 70.0, y: 7.0,  cols: 2 },
 
-  PPS:  { x: 3.0,  y: 60.5, cols: 1 },
+  PFR:  { x: 3.0,  y: 27.0, cols: 1 },
   PRR:  { x: 2.5,  y: 44.5, cols: 1 },
-  INC:  { x: 18.0, y: 28.0, cols: 2 },
-  COND: { x: 29.0, y: 28.0, cols: 2 },
-  ENS:  { x: 18.0, y: 42.0, cols: 2 },
-  ESA:  { x: 18.0, y: 42.0, cols: 2 },
-  COCI: { x: 29.0, y: 42.0, cols: 2 },
+  PAP:  { x: 3.0,  y: 60.5, cols: 1 },
+  CORR: { x: 2.5,  y: 72.0, cols: 1 },
+  PRES: { x: 2.5,  y: 72.0, cols: 1 },
 
-  VEN:  { x: 51.0, y: 36.0, cols: 2 },
-  MOS:  { x: 19.0, y: 87.0, cols: 2 },
-  PAP:  { x: 19.0, y: 87.0, cols: 2 },
-  EALM: { x: 51.0, y: 60.0, cols: 2 },
-
-  COR:  { x: 2.5,  y: 72.0, cols: 1 },
   CDL:  { x: 2.5,  y: 86.0, cols: 1 },
   PDL:  { x: 2.5,  y: 90.5, cols: 1 },
   VDL:  { x: 2.5,  y: 95.0, cols: 1 },
 
+  INC:  { x: 18.0, y: 28.0, cols: 2 },
+  CON:  { x: 29.0, y: 28.0, cols: 2 },
+  ENS:  { x: 18.0, y: 42.0, cols: 2 },
+  KTS:  { x: 29.0, y: 42.0, cols: 2 },
+
+  VEN:  { x: 51.0, y: 36.0, cols: 2 },
+  EALM: { x: 51.0, y: 60.0, cols: 2 },
+  BDA:  { x: 19.0, y: 87.0, cols: 2 },
+
   LOB:  { x: 75.0, y: 28.0, cols: 2 },
-  CUM:  { x: 75.0, y: 55.0, cols: 2 },
-  LEC:  { x: 75.0, y: 70.0, cols: 2 }
+  LEC:  { x: 75.0, y: 55.0, cols: 2 }
 };
 
 const MAP_POSITION_FALLBACK = { x: 51.0, y: 36.0, cols: 2 };
@@ -1092,8 +1888,14 @@ function renderMap() {
   const layer = document.getElementById('mapPersonLayer');
   if (!layer) return;
 
-  let crew = getCrew(state.currentDate).slice();
-  if (state.filterOn) crew = crew.filter(inMyShift);
+  const activeRange = getActiveMapRange();
+  const r = rangeForSelectedDate(activeRange.start, activeRange.end);
+
+  let crew = getCrewRecordsForWindow(r.start, r.end);
+  if (state.filterOn) {
+    const my = rangeForSelectedDate(state.myShift.start, state.myShift.end);
+    crew = crew.filter(c => c.absStart < my.end && c.absEnd > my.start);
+  }
 
   const groupedByPosition = {};
 
@@ -1105,6 +1907,7 @@ function renderMap() {
     groupedByPosition[code].push({
       ...person,
       pos: code,
+      sector: mapped.sector,
       segment: mapped.segment
     });
   });
@@ -1124,18 +1927,18 @@ function renderMap() {
 
     people
       .sort((a, b) => {
-        const timeDiff = timeToMin(a.entrada) - timeToMin(b.entrada);
+        const timeDiff = (a.absStart ?? timeToMin(a.entrada)) - (b.absStart ?? timeToMin(b.entrada));
         if (timeDiff !== 0) return timeDiff;
         return a.name.localeCompare(b.name, 'es');
       })
       .forEach(person => {
         const item = document.createElement('div');
         item.className = 'map-person';
-        item.onclick = () => openCrewModal(person.id);
+        item.onclick = () => openCrewModal(person.id, person.sourceDate || state.currentDate);
         item.title = `${person.name} · ${person.pos} · ${person.entrada} a ${person.salida}`;
 
         item.innerHTML = `
-          <div class="map-person-code" style="background:${POS_COLORS_MAP[person.segment] || '#777'}">
+          <div class="map-person-code" style="background:${POS_COLORS_MAP[person.sector] || POS_COLORS_MAP[person.segment] || '#777'}">
             ${escapeHtml(person.pos)}
           </div>
           <div class="map-person-text">
@@ -1153,11 +1956,12 @@ function renderMap() {
   if (crew.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'map-empty';
-    empty.textContent = 'No hay personas cargadas para este día';
+    empty.textContent = 'No hay personas cargadas para esta franja';
     layer.appendChild(empty);
   }
 
   renderMapLegend();
+  renderMapRangeTabs();
 }
 
 // TOGGLE FILTER
@@ -1168,6 +1972,7 @@ function toggleFilter() {
   if (mapToggle) mapToggle.classList.toggle('on', state.filterOn);
   renderCrewList();
   renderMap();
+  renderEmployees();
 }
 
 // PAGE SWITCH
@@ -1178,33 +1983,64 @@ function switchPage(name, btn) {
   btn.classList.add('active');
   document.querySelector('.app').classList.toggle('wide-mode', name === 'map');
   if (name === 'timeline') renderTimeline();
-  if (name === 'map') renderMap();
+  if (name === 'map') { renderMapRangeTabs(); renderMap(); }
+  if (name === 'employees') renderEmployees();
   document.querySelector('.fab').style.display = name === 'turnos' ? 'flex' : 'none';
 }
 
 // CREW MODAL
-function openCrewModal(id) {
+function openCrewModal(id, dateKey = null) {
   state.editingId = id;
+  state.editingDate = dateKey || state.currentDate;
   const posGrid = document.getElementById('posGrid');
   posGrid.innerHTML = '';
-  POSITIONS.forEach(p => {
-    const chip = document.createElement('div');
-    chip.className = 'pos-chip';
-    chip.textContent = p;
-    chip.title = POSITION_MAP[p]?.label || p;
-    chip.onclick = () => { state.editingPos = p; posGrid.querySelectorAll('.pos-chip').forEach(c => c.classList.remove('selected')); chip.classList.add('selected'); };
-    posGrid.appendChild(chip);
-  });
+
+  function renderPosGrid() {
+    posGrid.innerHTML = '';
+
+    const tabs = document.createElement('div');
+    tabs.className = 'pos-sector-tabs';
+    SEGMENTS.forEach(sector => {
+      const tab = document.createElement('div');
+      tab.className = 'pos-sector-tab' + (state.activePosSector === sector ? ' active' : '');
+      tab.textContent = sector;
+      tab.onclick = () => {
+        state.activePosSector = sector;
+        renderPosGrid();
+      };
+      tabs.appendChild(tab);
+    });
+    posGrid.appendChild(tabs);
+
+    const grid = document.createElement('div');
+    grid.className = 'pos-grid';
+    POSITIONS.filter(p => POSITION_MAP[p].sector === state.activePosSector).forEach(p => {
+      const chip = document.createElement('div');
+      chip.className = 'pos-chip';
+      chip.textContent = p;
+      chip.title = POSITION_MAP[p]?.label || p;
+      chip.onclick = () => {
+        state.editingPos = p;
+        posGrid.querySelectorAll('.pos-chip').forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+      };
+      if (p === state.editingPos) chip.classList.add('selected');
+      grid.appendChild(chip);
+    });
+    posGrid.appendChild(grid);
+  }
 
   if (id) {
-    const crew = getCrew(state.currentDate);
+    const crew = getCrew(state.editingDate);
     const c = crew.find(x => x.id === id);
     if (!c) return;
+    const mapped = getCrewPosition(c);
     document.getElementById('crewModalTitle').textContent = 'Editar crew';
     document.getElementById('inputName').value = c.name;
     document.getElementById('inputEntrada').value = c.entrada;
     document.getElementById('inputSalida').value = c.salida;
-    state.editingPos = getCrewPosition(c).code;
+    state.editingPos = mapped.code;
+    state.activePosSector = mapped.sector || 'SERVICIO';
     document.getElementById('btnDelete').style.display = 'block';
   } else {
     document.getElementById('crewModalTitle').textContent = 'Agregar crew';
@@ -1212,20 +2048,13 @@ function openCrewModal(id) {
     document.getElementById('inputEntrada').value = '09:00';
     document.getElementById('inputSalida').value = '17:00';
     state.editingPos = 'VEN';
+    state.activePosSector = 'SERVICIO';
     document.getElementById('btnDelete').style.display = 'none';
   }
 
-  posGrid.querySelectorAll('.pos-chip').forEach(c => { if (c.textContent === state.editingPos) c.classList.add('selected'); });
+  renderPosGrid();
   document.getElementById('crewModal').classList.add('show');
   setTimeout(resizeNameField, 0);
-}
-
-
-function resizeNameField() {
-  const field = document.getElementById('inputName');
-  if (!field || field.tagName !== 'TEXTAREA') return;
-  field.style.height = 'auto';
-  field.style.height = Math.max(58, field.scrollHeight) + 'px';
 }
 
 function closeCrewModal() { document.getElementById('crewModal').classList.remove('show'); }
@@ -1239,13 +2068,14 @@ function saveCrew() {
   const pos = mappedPos.code;
   const segment = mappedPos.segment;
 
-  if (!state.data[state.currentDate]) state.data[state.currentDate] = [];
+  const editDate = state.editingDate || state.currentDate;
+  if (!state.data[editDate]) state.data[editDate] = [];
 
   if (state.editingId) {
-    const idx = state.data[state.currentDate].findIndex(x => x.id === state.editingId);
-    if (idx >= 0) state.data[state.currentDate][idx] = { ...state.data[state.currentDate][idx], name, entrada, salida, pos, segment };
+    const idx = state.data[editDate].findIndex(x => x.id === state.editingId);
+    if (idx >= 0) state.data[editDate][idx] = { ...state.data[editDate][idx], name, entrada, salida, pos, segment };
   } else {
-    state.data[state.currentDate].push({ id: Date.now(), name, entrada, salida, pos, segment });
+    state.data[editDate].push({ id: Date.now(), name, entrada, salida, pos, segment });
   }
 
   saveState();
@@ -1256,7 +2086,7 @@ function saveCrew() {
 function deleteCrew() {
   if (!state.editingId) return;
   if (!confirm('¿Eliminar este crew?')) return;
-  state.data[state.currentDate] = state.data[state.currentDate].filter(x => x.id !== state.editingId);
+  state.data[state.editingDate || state.currentDate] = state.data[state.editingDate || state.currentDate].filter(x => x.id !== state.editingId);
   saveState();
   closeCrewModal();
   renderAll();
@@ -1348,10 +2178,10 @@ Reglas:
 - Horarios en formato 24 horas.
 - Si un horario aparece como 7, convertirlo a "07:00".
 - Si aparece 7:30, convertirlo a "07:30".
-- En "pos" devolvé ÚNICAMENTE el CÓDIGO corto que aparece dentro de la barra del turno. Ejemplos válidos: BOD, VEN, DES, INC, TAU, LOB, PDL, PRR, CDL, LEC, CUM, CAU, PPS, ENS, ESA, PAP, EALM, MTM, VDL, PAU, EAU, COR, VAM, AAU, COA.
+- En "pos" devolvé ÚNICAMENTE el CÓDIGO corto que aparece dentro de la barra del turno. Ejemplos válidos: PRR, INC, ENS, PFR, KTS, CON, VEN, EALM, CORR, PRES, PAP, BDA, CAU, TAU, COA, PAU, CDL, PDL, VDL, LOB, LEC, MTM, DES.
 - No devuelvas segmentos como SERVICIO, COCINA, DELIVERY, AUTOMC, LOBBY, MARKETING o DESCARGA. La app clasifica cada código automáticamente.
 - Leé el código de la barra de color, no el color de la barra.
-- Mapeo de referencia: BOD y DES = descarga; LOB = lobby; CUM y LEC = marketing; VEN/MOS/PAP/EALM/PPS = servicio; MTM = mantenimiento; INC/ENS/ESA/PRR/COCI = cocina; CDL/PDL/VDL = delivery; TAU/CAU/PAU/EAU/COR/VAM/AAU/COA = AutoMac.
+- Mapeo de referencia: BOD y DES = descarga; LOB = lobby; CUM y LEC = marketing; COCINA: PRR/INC/ENS/PFR/KTS/CON. SERVICIO: VEN/EALM/CORR/PRES. PAPAS: PAP. TORRE: BDA. AUTOMAC: CAU/TAU/COA/PAU. DELIVERY: CDL/PDL/VDL. LOBBY: LOB. LEC: LEC. MANTENIMIENTO: MTM. DESCARGA: DES.
 - Si el código no se ve bien, usá "VEN".
 - Si hay nombres repetidos con turnos distintos, incluí ambos.
 - Si un dato no se ve bien, intentá inferirlo solo si es muy claro.`
@@ -1437,11 +2267,19 @@ function parseGeminiJsonArray(text) {
 }
 
 function normalizeCrew(c) {
+  const name = String(c.name || c.nombre || '').trim();
   const rawPos = c.pos || c.position || c.puesto || c.area || c.segment || c.segmento;
-  const mapped = normalizePosition(rawPos || 'VEN');
+  let positionInput = rawPos;
+
+  if (!hasExplicitKnownPosition(rawPos)) {
+    const inferred = inferPositionFromEmployeeName(name);
+    if (inferred) positionInput = inferred;
+  }
+
+  const mapped = normalizePosition(positionInput || 'VEN');
 
   return {
-    name: String(c.name || c.nombre || '').trim(),
+    name,
     entrada: normalizeTime(c.entrada || c.inicio || c.start),
     salida: normalizeTime(c.salida || c.fin || c.end),
     pos: mapped.code,
@@ -1543,7 +2381,7 @@ function applyImport(crewArr, mode = 'append') {
 
     if (mode === 'append' && existingKeys.has(key)) return;
 
-    state.data[state.currentDate].push({
+    state.data[editDate].push({
       id: Date.now() + Math.random(),
       name: c.name,
       entrada: c.entrada,
@@ -1572,6 +2410,62 @@ function fileToBase64(file) {
   });
 }
 
+
+// EMPLOYEES
+function renderEmployees() {
+  const list = document.getElementById('employeeList');
+  if (!list) return;
+  const employees = (state.employees || []).slice().sort((a,b) => a.name.localeCompare(b.name, 'es'));
+  list.innerHTML = '';
+  employees.forEach(emp => {
+    const safeName = escapeHtml(emp.name);
+    const card = document.createElement('div');
+    card.className = 'employee-card';
+    card.innerHTML = `
+      <div>
+        <div class="employee-name">${safeName}</div>
+        <div class="employee-skills">${escapeHtml((emp.skills || []).join(', '))}</div>
+      </div>
+      <div class="employee-actions">
+        <button class="employee-mini-btn" onclick="editEmployeeProfile('${safeName}')">Editar</button>
+        <button class="employee-mini-btn" onclick="deleteEmployeeProfile('${safeName}')">Borrar</button>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+function saveEmployeeProfile() {
+  const name = document.getElementById('employeeName').value.trim();
+  const skillsRaw = document.getElementById('employeeSkills').value.trim();
+  if (!name) { document.getElementById('employeeName').focus(); return; }
+  const skills = skillsRaw.split(',').map(normalizeSkill).filter(Boolean);
+  if (skills.length === 0) skills.push('SERVICIO');
+  const key = normalizeTextKey(name);
+  const idx = state.employees.findIndex(e => normalizeTextKey(e.name) === key);
+  const profile = { name, skills, createdFromDefault: false };
+  if (idx >= 0) state.employees[idx] = profile;
+  else state.employees.push(profile);
+  state.employees.sort((a,b) => a.name.localeCompare(b.name, 'es'));
+  document.getElementById('employeeName').value = '';
+  document.getElementById('employeeSkills').value = '';
+  saveState();
+  renderEmployees();
+}
+function editEmployeeProfile(name) {
+  const profile = findEmployeeProfile(name);
+  if (!profile) return;
+  document.getElementById('employeeName').value = profile.name;
+  document.getElementById('employeeSkills').value = (profile.skills || []).join(', ');
+  document.getElementById('employeeName').focus();
+}
+function deleteEmployeeProfile(name) {
+  const profile = findEmployeeProfile(name);
+  if (!profile) return;
+  if (!confirm('¿Borrar de la base a ' + profile.name + '?')) return;
+  state.employees = state.employees.filter(e => normalizeTextKey(e.name) !== normalizeTextKey(name));
+  saveState();
+  renderEmployees();
+}
+
 // RENDER ALL
 function renderAll() {
   renderDays('dayScroll');
@@ -1581,10 +2475,13 @@ function renderAll() {
   renderMyShift();
   renderCrewList();
   renderMap();
+  renderEmployees();
 }
 
 // INIT
 loadState();
+mergeDefaultEmployees();
+saveState();
 renderAll();
 document.addEventListener('input', event => {
   if (event.target && event.target.id === 'inputName') resizeNameField();
