@@ -457,6 +457,48 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   }
 }
 
+
+/* PROFILE MENU + EMPLOYEE BASE MODAL */
+.profile-menu-modal {
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  padding: 20px 20px 36px;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+}
+.profile-menu-btn {
+  width: 100%;
+  padding: 14px;
+  border: 0.5px solid var(--border2);
+  background: var(--surface2);
+  color: var(--text);
+  border-radius: 12px;
+  font-family: 'Barlow', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 10px;
+  text-align: left;
+}
+.profile-menu-btn small {
+  display: block;
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 400;
+  margin-top: 3px;
+}
+.profile-menu-btn.primary {
+  background: var(--yellow);
+  color: #111;
+  border-color: var(--yellow);
+}
+.profile-menu-btn.primary small { color: rgba(0,0,0,0.65); }
+.employee-suggestions {
+  position: relative;
+  z-index: 260;
+}
+
 </style>
 </head>
 <body>
@@ -468,7 +510,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
       <div class="topbar-title">📋 Turnos Manager</div>
       <div class="topbar-date" id="topbarDate"></div>
     </div>
-    <button class="topbar-icon-btn" onclick="openShiftModal()" title="Mi turno">
+    <button class="topbar-icon-btn" onclick="openProfileMenu()" title="Opciones">
       <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
     </button>
   </div>
@@ -753,7 +795,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     <div class="modal-title" id="crewModalTitle">Agregar crew</div>
     <div class="form-group">
       <label class="form-label">NOMBRE</label>
-      <textarea class="form-input form-textarea" id="inputName" placeholder="Buscá o escribí nombre completo" rows="2" autocomplete="off"></textarea>
+      <textarea class="form-input form-textarea" id="inputName" placeholder="Buscá o escribí nombre completo" rows="2" autocomplete="off" oninput="resizeNameField(); renderEmployeeSuggestions()" onfocus="renderEmployeeSuggestions()"></textarea>
       <div class="employee-suggestions" id="employeeSuggestions"></div>
     </div>
     <div class="form-row form-group">
@@ -793,7 +835,54 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
     <p style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">Con el filtro activo, se muestran crew que entran <b style="color:var(--text)">desde tu horario de entrada hasta 1 hora antes de que te vayas</b>. Ejemplo: si hacés 09:00 a 17:00, ves entradas de 09:00 a 16:00.</p>
     <button class="btn-primary" onclick="saveMyShift()">Guardar</button>
   </div>
+
 </div>
+
+<!-- PROFILE MENU MODAL -->
+<div class="modal-overlay" id="profileMenuModal" onclick="if(event.target===this)closeProfileMenu()">
+  <div class="profile-menu-modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Opciones</div>
+
+    <button class="profile-menu-btn primary" onclick="closeProfileMenu(); openShiftModal();">
+      Mi turno
+      <small>Editar el horario que hago hoy.</small>
+    </button>
+
+    <button class="profile-menu-btn" onclick="closeProfileMenu(); openEmployeeBaseModal();">
+      Agregar empleado a la base
+      <small>Sumar una persona para que aparezca en el buscador.</small>
+    </button>
+
+    <button class="profile-menu-btn" onclick="closeProfileMenu(); forceLoadDefaultEmployees();">
+      Cargar empleados iniciales
+      <small>Usar esto si el buscador no muestra la lista cargada.</small>
+    </button>
+  </div>
+</div>
+
+<!-- ADD EMPLOYEE BASE MODAL -->
+<div class="modal-overlay" id="employeeBaseModal" onclick="if(event.target===this)closeEmployeeBaseModal()">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Agregar empleado a la base</div>
+
+    <div class="form-group">
+      <label class="form-label">NOMBRE COMPLETO</label>
+      <input class="form-input" id="quickEmployeeName" placeholder="Ej: Luciana Mailen Golato">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">APTITUDES / SECTORES</label>
+      <input class="form-input" id="quickEmployeeSkills" placeholder="Ej: COCINA, SERVICIO, LOBBY">
+    </div>
+
+    <p style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:12px">
+      Separá varias aptitudes con coma. Ejemplo: <b style="color:var(--text)">AUTO, SERVICIO, LOBBY</b>.
+    </p>
+
+    <button class="btn-primary" onclick="saveQuickEmployeeProfile()">Guardar en base</button>
+  </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
@@ -1690,6 +1779,12 @@ async function loadCloudState() {
       const empCloud = empSnap.data() || {};
       state.employees = empCloud.employees || [];
       mergeDefaultEmployees();
+      if (!empCloud.employees || empCloud.employees.length === 0) {
+        await empRef.set({
+          employees: state.employees,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+      }
     } else {
       mergeDefaultEmployees();
       await empRef.set({
@@ -2268,6 +2363,93 @@ function switchPage(name, btn) {
 
 // CREW MODAL
 
+
+function openProfileMenu() {
+  document.getElementById('profileMenuModal').classList.add('show');
+}
+
+function closeProfileMenu() {
+  document.getElementById('profileMenuModal').classList.remove('show');
+}
+
+function openEmployeeBaseModal(name = '') {
+  const modal = document.getElementById('employeeBaseModal');
+  const nameInput = document.getElementById('quickEmployeeName');
+  const skillsInput = document.getElementById('quickEmployeeSkills');
+
+  if (nameInput) nameInput.value = name || '';
+  if (skillsInput) skillsInput.value = '';
+
+  modal.classList.add('show');
+  setTimeout(() => nameInput && nameInput.focus(), 50);
+}
+
+function closeEmployeeBaseModal() {
+  document.getElementById('employeeBaseModal').classList.remove('show');
+}
+
+function openEmployeeBaseFromCrewName() {
+  const input = document.getElementById('inputName');
+  const name = input ? input.value.trim() : '';
+  const box = document.getElementById('employeeSuggestions');
+  if (box) box.classList.remove('show');
+  openEmployeeBaseModal(name);
+}
+
+function upsertEmployeeProfile(name, skillsRaw) {
+  const cleanName = String(name || '').trim();
+  if (!cleanName) return false;
+
+  const skills = String(skillsRaw || '')
+    .split(',')
+    .map(normalizeSkill)
+    .filter(Boolean);
+
+  if (skills.length === 0) skills.push('SERVICIO');
+
+  if (!Array.isArray(state.employees)) state.employees = [];
+  const key = normalizeTextKey(cleanName);
+  const idx = state.employees.findIndex(e => normalizeTextKey(e.name) === key);
+  const profile = { name: cleanName, skills, createdFromDefault: false };
+
+  if (idx >= 0) state.employees[idx] = profile;
+  else state.employees.push(profile);
+
+  state.employees.sort((a,b) => a.name.localeCompare(b.name, 'es'));
+  saveState();
+  renderEmployees();
+  return true;
+}
+
+function saveQuickEmployeeProfile() {
+  const nameInput = document.getElementById('quickEmployeeName');
+  const skillsInput = document.getElementById('quickEmployeeSkills');
+  const ok = upsertEmployeeProfile(nameInput.value, skillsInput.value);
+
+  if (!ok) {
+    nameInput.focus();
+    return;
+  }
+
+  closeEmployeeBaseModal();
+
+  // Si estaba agregando un crew, autocompleta con el empleado creado.
+  const crewModal = document.getElementById('crewModal');
+  if (crewModal && crewModal.classList.contains('show')) {
+    selectEmployeeForCrew(nameInput.value.trim());
+  }
+
+  setCloudStatus('ok', 'Empleado guardado en la base compartida');
+}
+
+function forceLoadDefaultEmployees() {
+  mergeDefaultEmployees();
+  saveState();
+  renderEmployees();
+  setCloudStatus('ok', 'Empleados iniciales cargados: ' + (state.employees || []).length);
+}
+
+
 function preferredPositionForEmployee(profile) {
   if (!profile || !profile.skills || profile.skills.length === 0) return 'VEN';
   return defaultPositionForSkill(profile.skills[0]);
@@ -2278,29 +2460,46 @@ function renderEmployeeSuggestions() {
   const box = document.getElementById('employeeSuggestions');
   if (!input || !box) return;
 
+  const employees = state.employees || [];
   const q = normalizeTextKey(input.value);
-  if (q.length < 2) {
+
+  if (q.length < 1) {
     box.classList.remove('show');
     box.innerHTML = '';
     return;
   }
 
-  const results = (state.employees || [])
-    .filter(emp => normalizeTextKey(emp.name).includes(q))
-    .slice(0, 8);
+  const qWords = q.split(' ').filter(Boolean);
+  const results = employees
+    .filter(emp => {
+      const nameKey = normalizeTextKey(emp.name);
+      return qWords.every(w => nameKey.includes(w));
+    })
+    .slice(0, 10);
 
   if (results.length === 0) {
-    box.classList.remove('show');
-    box.innerHTML = '';
+    box.innerHTML = `
+      <button type="button" class="employee-suggestion" onclick="openEmployeeBaseFromCrewName()">
+        <div class="employee-suggestion-name">No aparece en la base</div>
+        <div class="employee-suggestion-skills">Tocar para agregar este nombre como empleado nuevo</div>
+      </button>
+    `;
+    box.classList.add('show');
     return;
   }
 
-  box.innerHTML = results.map(emp => `
-    <button type="button" class="employee-suggestion" onclick="selectEmployeeForCrew('${escapeHtml(emp.name)}')">
+  box.innerHTML = '';
+  results.forEach(emp => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'employee-suggestion';
+    btn.innerHTML = `
       <div class="employee-suggestion-name">${escapeHtml(emp.name)}</div>
       <div class="employee-suggestion-skills">${escapeHtml((emp.skills || []).join(', '))}</div>
-    </button>
-  `).join('');
+    `;
+    btn.onclick = () => selectEmployeeForCrew(emp.name);
+    box.appendChild(btn);
+  });
 
   box.classList.add('show');
 }
@@ -2793,21 +2992,16 @@ function renderEmployees() {
   });
 }
 function saveEmployeeProfile() {
-  const name = document.getElementById('employeeName').value.trim();
-  const skillsRaw = document.getElementById('employeeSkills').value.trim();
-  if (!name) { document.getElementById('employeeName').focus(); return; }
-  const skills = skillsRaw.split(',').map(normalizeSkill).filter(Boolean);
-  if (skills.length === 0) skills.push('SERVICIO');
-  const key = normalizeTextKey(name);
-  const idx = state.employees.findIndex(e => normalizeTextKey(e.name) === key);
-  const profile = { name, skills, createdFromDefault: false };
-  if (idx >= 0) state.employees[idx] = profile;
-  else state.employees.push(profile);
-  state.employees.sort((a,b) => a.name.localeCompare(b.name, 'es'));
-  document.getElementById('employeeName').value = '';
-  document.getElementById('employeeSkills').value = '';
-  saveState();
-  renderEmployees();
+  const nameEl = document.getElementById('employeeName');
+  const skillsEl = document.getElementById('employeeSkills');
+
+  if (!upsertEmployeeProfile(nameEl.value, skillsEl.value)) {
+    nameEl.focus();
+    return;
+  }
+
+  nameEl.value = '';
+  skillsEl.value = '';
 }
 function editEmployeeProfile(name) {
   const profile = findEmployeeProfile(name);
