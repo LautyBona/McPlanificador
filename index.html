@@ -295,17 +295,32 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 
 
 /* FIX SECTOR ACCORDION LAYOUT */
-@media (min-width: 900px) {
+.crew-list {
+  display: grid !important;
+  grid-template-columns: 1fr;
+  align-items: start;
+  gap: 14px;
+}
+@media (min-width: 760px) {
   .crew-list {
-    display: flex !important;
-    flex-direction: column !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     max-width: 980px;
     margin-left: auto;
     margin-right: auto;
   }
-  .segment-block {
-    width: 100%;
+}
+@media (min-width: 1150px) {
+  .crew-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-width: 1320px;
   }
+}
+.segment-block {
+  width: 100%;
+  min-width: 0;
+}
+.segment-block[data-sector="TORRE"] {
+  order: 999;
 }
 .segment-title-row {
   cursor: pointer;
@@ -336,6 +351,18 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 }
 .segment-block.collapsed {
   margin-bottom: 8px;
+}
+
+
+.segment-title-row {
+  min-height: 40px;
+}
+.segment-block.collapsed .segment-title-row {
+  margin-bottom: 0;
+}
+@media (min-width: 1150px) {
+  .segment-title { font-size: 17px; }
+  .segment-count { font-size: 10px; }
 }
 
 </style>
@@ -672,7 +699,7 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 
 <script>
-const SECTOR_ORDER = ['TODOS','AUTOMAC','COCINA','SERVICIO','LOBBY','LEC','MANTENIMIENTO','DESCARGA','PAPAS','TORRE','DELIVERY'];
+const SECTOR_ORDER = ['TODOS','AUTOMAC','SERVICIO','COCINA','LOBBY','LEC','MANTENIMIENTO','DESCARGA','PAPAS','DELIVERY','TORRE'];
 const SEGMENTS = SECTOR_ORDER.filter(s => s !== 'TODOS');
 
 const POSITION_MAP = {
@@ -1741,6 +1768,7 @@ function renderCrewList() {
     const block = document.createElement('div');
     const collapsed = isSectorCollapsed(sector);
     block.className = 'segment-block' + (collapsed ? ' collapsed' : '');
+    block.dataset.sector = sector;
     block.innerHTML = `
       <div class="segment-title-row" onclick="toggleSectorCollapsed('${sector}')">
         <div class="segment-title-left">
