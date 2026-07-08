@@ -499,6 +499,95 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
   z-index: 260;
 }
 
+
+/* POSITION PICKER LIST - FIX */
+.position-picker {
+  display: grid !important;
+  grid-template-columns: 118px minmax(0, 1fr) !important;
+  gap: 10px !important;
+  align-items: start;
+}
+.position-picker .pos-sector-tabs {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  overflow: visible !important;
+  padding: 0 !important;
+}
+.position-picker .pos-sector-tab {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 34px !important;
+  border-radius: 9px !important;
+  text-align: left !important;
+  padding: 8px 9px !important;
+  font-size: 10.5px !important;
+  white-space: normal !important;
+}
+.position-picker .position-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+.position-option {
+  width: 100%;
+  border: 0.5px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  border-radius: 9px;
+  padding: 9px 10px;
+  text-align: left;
+  cursor: pointer;
+  font-family: 'Barlow', sans-serif;
+}
+.position-option.selected {
+  background: var(--yellow);
+  color: #111;
+  border-color: var(--yellow);
+  font-weight: 700;
+}
+.position-option-code {
+  display: inline-block;
+  min-width: 42px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 17px;
+  font-weight: 800;
+}
+.position-option-label {
+  font-size: 12px;
+  opacity: 0.78;
+}
+.position-picker .position-help {
+  grid-column: 1 / -1;
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 0;
+  line-height: 1.35;
+}
+@media (max-width: 430px) {
+  .position-picker {
+    grid-template-columns: 96px minmax(0, 1fr) !important;
+    gap: 8px !important;
+  }
+  .position-picker .pos-sector-tab {
+    font-size: 9.5px !important;
+    padding: 8px 6px !important;
+  }
+  .position-option { padding: 8px; }
+  .position-option-code { min-width: 36px; font-size: 16px; }
+  .position-option-label { font-size: 11px; }
+}
+
+
+/* SEARCH FIX */
+.employee-suggestions {
+  box-shadow: 0 8px 22px rgba(0,0,0,0.28);
+}
+.employee-suggestion-name {
+  white-space: normal;
+}
+
 </style>
 </head>
 <body>
@@ -2573,6 +2662,7 @@ function renderEmployeeSuggestions() {
   }
 
   const qWords = q.split(' ').filter(Boolean);
+
   const results = employees
     .map(emp => {
       const nameKey = normalizeTextKey(emp.name);
@@ -2639,7 +2729,9 @@ function selectEmployeeForCrew(name) {
 function renderModalPositionGrid() {
   const posGrid = document.getElementById('posGrid');
   if (!posGrid) return;
+
   posGrid.innerHTML = '';
+  posGrid.className = 'position-picker';
 
   const tabs = document.createElement('div');
   tabs.className = 'pos-sector-tabs';
@@ -2650,39 +2742,45 @@ function renderModalPositionGrid() {
     tab.textContent = sector;
     tab.onclick = () => {
       state.activePosSector = sector;
-      const firstPosition = POSITIONS.find(p => POSITION_MAP[p].sector === sector);
-      if (firstPosition) state.editingPos = firstPosition;
+
+      const currentSector = POSITION_MAP[state.editingPos]?.sector;
+      if (currentSector !== sector) {
+        const firstPosition = POSITIONS.find(p => POSITION_MAP[p].sector === sector);
+        if (firstPosition) state.editingPos = firstPosition;
+      }
+
       renderModalPositionGrid();
     };
     tabs.appendChild(tab);
   });
 
-  posGrid.appendChild(tabs);
-
-  const grid = document.createElement('div');
-  grid.className = 'pos-grid';
+  const list = document.createElement('div');
+  list.className = 'position-list';
 
   const positions = POSITIONS.filter(p => POSITION_MAP[p].sector === state.activePosSector);
   positions.forEach(p => {
-    const chip = document.createElement('div');
-    chip.className = 'pos-chip';
-    chip.textContent = p;
-    chip.title = POSITION_MAP[p]?.label || p;
-    chip.onclick = () => {
+    const info = POSITION_MAP[p];
+    const option = document.createElement('button');
+    option.type = 'button';
+    option.className = 'position-option' + (p === state.editingPos ? ' selected' : '');
+    option.innerHTML = `
+      <span class="position-option-code">${escapeHtml(p)}</span>
+      <span class="position-option-label">${escapeHtml(info?.label || p)}</span>
+    `;
+    option.onclick = () => {
       state.editingPos = p;
-      posGrid.querySelectorAll('.pos-chip').forEach(c => c.classList.remove('selected'));
-      chip.classList.add('selected');
+      renderModalPositionGrid();
     };
-    if (p === state.editingPos) chip.classList.add('selected');
-    grid.appendChild(chip);
+    list.appendChild(option);
   });
-
-  posGrid.appendChild(grid);
 
   const help = document.createElement('div');
   help.className = 'position-help';
   const selected = POSITION_MAP[state.editingPos];
-  help.textContent = selected ? `${state.editingPos} = ${selected.label}` : 'Elegí un puesto';
+  help.textContent = selected ? `Seleccionado: ${state.editingPos} = ${selected.label}` : 'Elegí un puesto';
+
+  posGrid.appendChild(tabs);
+  posGrid.appendChild(list);
   posGrid.appendChild(help);
 }
 
@@ -2739,9 +2837,9 @@ function saveCrew() {
 
   if (state.editingId) {
     const idx = state.data[editDate].findIndex(x => x.id === state.editingId);
-    if (idx >= 0) state.data[editDate][idx] = { ...state.data[editDate][idx], name, entrada, salida, pos, sector: mappedPos.sector, segment, manualPosition: true };
+    if (idx >= 0) state.data[editDate][idx] = { ...state.data[editDate][idx], name, entrada, salida, pos, posLabel: mappedPos.label, sector: mappedPos.sector, segment, manualPosition: true };
   } else {
-    state.data[editDate].push({ id: Date.now(), name, entrada, salida, pos, sector: mappedPos.sector, segment, manualPosition: true });
+    state.data[editDate].push({ id: Date.now(), name, entrada, salida, pos, posLabel: mappedPos.label, sector: mappedPos.sector, segment, manualPosition: true });
   }
 
   saveState();
@@ -2947,8 +3045,8 @@ function normalizeCrew(c) {
 
   let mapped = normalizePosition(positionInput || 'VEN');
 
-  // Si viene de importación, Gemini puede equivocarse y lo corregimos con la base.
-  // Si fue editado/manual, respetamos lo que eligió el gerente aunque no esté en skills.
+  // Si viene de Gemini/foto, puede equivocarse y lo corregimos con la base.
+  // Si fue editado/agregado manualmente, respetamos lo elegido aunque no esté en skills.
   if (!c.manualPosition && profile && !positionAllowedForEmployee(profile, mapped)) {
     mapped = normalizePosition(defaultPositionForSkill(profile.skills[0]));
   }
